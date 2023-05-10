@@ -1,5 +1,4 @@
-**/*.dSYM
-**/a.out
+a.out.dSYM
+a.out
 .DS_Store
 .vscode/
-a.out
