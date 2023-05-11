@@ -6,11 +6,11 @@
     verify fork shit ...
 
 mandatory:
-
-
 '' single quote
 - check n number of '' of n / 2 id odd print content of variable
 - check n number of '' of n / 2 id even print name of variable
+
+
 
 "" double quote
 - always print content

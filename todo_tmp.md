@@ -9,6 +9,10 @@ eval what after $
 
 starts from left " keep going till right ", if found 
 
++ when evaluating:
+    evaluate, if it's a variable: replace it with its content if it's between ""
+    while there isn't space evaluate current and join it to the next
+
 + store env somewhere
 + $ get what after '$' and search for it in env, and return it
 + unset remove from env
