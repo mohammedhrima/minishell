@@ -2,11 +2,6 @@ ls -> ls
 l's' -> ls
 l"s" -> ls
 
-eval what after $
-
-' : preserves the literal value of each character withen the quote like it doesn't exists
-" : preserves the literal value of all characters with the exception of $ ` \
-
 starts from left " keep going till right ", if found 
 
 + when evaluating:
@@ -22,4 +17,5 @@ starts from left " keep going till right ", if found
     + if call export -> print declare -x + print everything (has value or don't have)
     + if call env -> print only that has value
 
-    
++ step 1:
+do evualation by returning it's content as string

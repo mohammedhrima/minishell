@@ -16,18 +16,24 @@ typedef struct Node Node;
 enum Type
 {
     skip_,
-    identifier_,        // can be command, or file
-    dollar_,            // $, expanding will be handled in double_quotes_
-    double_quotes_,     // "
-                        // if you fine $ expand it
-                        // else search in envp (recognized as command)
-    single_quotes_,     // '
-    flag_,              // starts with -
-    infile_,            // <
-    outfile_,           // >
-    heredoc_,           // <<
-    append_,            // >>
-    pipe_,              // |
+    identifier_,          // can be command, or file
+    dollar_,              // $, expanding will be handled in double_quotes_
+    
+    start_expandable_, 
+    end_expandable_,
+                          // if you fine $ expand it
+                          // else search in envp (recognized as command)
+    
+    single_quotes_,  // '
+   
+    string_,
+
+    // flag_,                // starts with -
+    infile_,              // <
+    outfile_,             // >
+    heredoc_,             // <<
+    append_,              // >>
+    pipe_,                // |
     // will be readen as identifier
     // or double quotes and get expanded after is double quotes
     env_,               // env
@@ -60,7 +66,7 @@ struct {
     {">", outfile_},
     {"|", pipe_},
     {"$", dollar_},
-    {"-", flag_},
+    // {"-", flag_},
     {0 , 0}
 };
 
@@ -177,12 +183,24 @@ char *type_to_string(Type type)
             return "IDENTIFIER";
         case dollar_:
             return "DOLLAR";
-        case double_quotes_:
-            return "DOUBLE QUOTES";
+        // case left_double_quotes_:
+        //     return "LEFT DOUBLE QUOTES";
+        // case right_double_quotes_:
+        //     return "RIGHT DOUBLE QUOTES";
+        // case double_quotes_:
+        //     return "DOUBLE QUOTES";
+        // case left_single_quotes_:
+        //     return "LEFT SINGLE QUOTES";
+        // case right_single_quotes_:
+        //     return "RIGHT SINGLE QUOTES";
+        case start_expandable_:
+            return "START EXPANDABLE";
+        case end_expandable_:
+            return "END EXPANDABLE";
         case single_quotes_:
             return "SINGLE QUOTES";
-        case flag_:
-            return "FLAG";
+        // case flag_:
+        //     return "FLAG";
         case infile_:
             return "INFILE";
         case outfile_:
@@ -197,6 +215,8 @@ char *type_to_string(Type type)
             return "SPACE";
         case end_:
             return "END"; 
+        case string_:
+            return "STRING";
         // case echo_:
         //     return "ECHO";
         // case cd_:
@@ -231,21 +251,28 @@ void print_space_(int len)
 
 char *text;
 int txt_pos;
-int start;
+// int start;
 Token *tokens[1000];
 
 int tk_pos;
 int exe_pos;
 
-Token *new_token(Type type)
+Token *new_token(Type type, int start, int end)
 {
-    // in new_token check alpha_tokens
     Token *new = ft_calloc(1, sizeof(Token));
     new->content = NULL;
     new->type = type;
-    new->content = ft_calloc(txt_pos - start + 1, sizeof(char));
-    ft_strncpy(new->content, text + start, txt_pos - start );
-    start = txt_pos;
+    if(end > start)
+    {
+        new->content = ft_calloc(end - start + 1, sizeof(char));
+        int i = 0;
+        while(start + i < end)
+        {
+            new->content[i] = text[start + i];
+            i++;
+        }
+    }
+
     // int i = 0;
     // while(alpha_lexic[i].value)
     // {
@@ -256,7 +283,12 @@ Token *new_token(Type type)
     //     }  
     //     i++;
     // }
-    printf("new token with type '%s', content '%s'\n", type_to_string(type), new->content);
+    printf("new token with type ");
+    printf("%s", type_to_string(type));
+    print_space_(18 - ft_strlen(type_to_string(type)));
+    printf("content '%s'\n", new->content);
+
+
     tokens[tk_pos] = new;
     tk_pos++;
     return new;
@@ -265,57 +297,73 @@ Token *new_token(Type type)
 void error(char c)
 {
     printf("\n");
+    printf("%s\n", text);
     print_space_(txt_pos);
     printf("^\n");
     printf("Expected '%c'\n", c);
     exit(0);
 }
 
-void build_tokens()
+Token *build_tokens()
 {
+    Token *token;
+    int start = 0;
     while(text && text[txt_pos])
     {
-        start = txt_pos;
         if(text[txt_pos] == '\0')
             break;
         // skip spaces
         if(text[txt_pos] == ' ')
         {
-            // start = txt_pos;
+            start = txt_pos;
             while(text[txt_pos] == ' ')
                 txt_pos++;
-            new_token(space_);
+            new_token(space_, start, txt_pos);
             continue;
         }
         // double quotes command
         if(text[txt_pos] == '"')
-        {
-            txt_pos++;
+        {            
+            txt_pos++; // skip left "
             start = txt_pos;
             while(text[txt_pos] && text[txt_pos] != '"')
             {
-                // if(text[txt_pos] == '$')
-                txt_pos++;
-            
+                if(text[txt_pos] == '$')
+                {
+                    new_token(string_, start, txt_pos);
+                    txt_pos++; // to skip $
+                    // start = txt_pos;
+                    // while(text[txt_pos] && text[txt_pos] != ' ' && text[txt_pos] != '"')
+                    //     txt_pos++;
+                    new_token(dollar_, start, txt_pos);
+                    start = txt_pos; // for the next string
+                    // don't increment txt_pos here to skip second " 
+                    // because it may cause problems when exiting the while loop
+                }
+                else
+                    txt_pos++;
             }
             if(text[txt_pos] != '"')
                 error('"');
-            new_token(double_quotes_);
-            txt_pos++;
+            new_token(string_, start, txt_pos);
+            txt_pos++; // skip right "
             continue;
         }
         // single quotes command
+        // treated as string
         if(text[txt_pos] == '\'')
         {
-            txt_pos++;
+            txt_pos++; // skip left '
             start = txt_pos;
             while(text[txt_pos] && text[txt_pos] != '\'')
                 txt_pos++;
             if(text[txt_pos] != '\'')
                 error('\'');
-            new_token(single_quotes_);
-            txt_pos++;
+            new_token(string_, start, txt_pos);
+            txt_pos++; // skip right '
+            
             continue;
+            // return token;
         }
         // heredoc, redirection, pipe, dollar
         int i = 0;
@@ -324,24 +372,40 @@ void build_tokens()
         {
             if(ft_strncmp(symbol_lexic[i].value, &text[txt_pos], ft_strlen(symbol_lexic[i].value)) == 0)
             {
-                // start = txt_pos;
+                start = txt_pos;
                 type = symbol_lexic[i].type;
                 txt_pos += ft_strlen(symbol_lexic[i].value);
-                // printf("start from %d to %d\n", start, txt_pos);
-                new_token(symbol_lexic[i].type);
                 break;
             }
             i++;
         }
         if(type)
+        {
+            new_token(type, start, txt_pos);
+            // I added start and txt_pos here, to use them in case $$, second dellar will be considered as identifier
+            // handle dollar in evaluation
             continue;
-        // start = txt_pos;
-        while(ft_isalphanum(text[txt_pos]))
-            txt_pos++;
-        new_token(identifier_);
-        continue;
+        }
+        if(text[txt_pos])
+        {
+            start = txt_pos;
+            while
+            (
+                text[txt_pos] != '\0' &&
+                text[txt_pos] != '\'' &&
+                text[txt_pos] != '\"' &&
+                text[txt_pos] != ' '
+            )
+            {
+                txt_pos++;
+            }
+            new_token(identifier_, start, txt_pos);
+            continue;
+        }
+
     }
-    new_token(end_);
+    return new_token(end_, 0, 0);
+    // return NULL;
 }
 
 // build nodes
@@ -377,7 +441,7 @@ Node *flag();        // flag
 Node *join();        // join two
 Node *prime();       // file, command, path
                      // built in commands: echo, cd, pwd, export, unset, env, exit
-
+#if 0
 Node *expr()
 {
     return pipe_node();
@@ -399,7 +463,7 @@ Node *pipe_node()
 
 Node *redirection()
 {
-    Node *left = flag();
+    Node *left = join();
     while(
         tokens[exe_pos]->type == heredoc_ ||
         tokens[exe_pos]->type == append_ ||
@@ -410,22 +474,7 @@ Node *redirection()
         Node *node = new_node(tokens[exe_pos]);
         skip(tokens[exe_pos]->type);
         node->left = left;
-        node->right = flag();
-        left = node;
-    }
-    return left;
-}
-
-Node *flag()
-{
-    Node *left = join();
-    while(tokens[exe_pos]->type == flag_)
-    {
-        Node *node = new_node(tokens[exe_pos]);
-        skip(flag_);
-        node->left = left;
         node->right = join();
-        // expect something here
         left = node;
     }
     return left;
@@ -436,10 +485,7 @@ Node *join()
     Node *left = prime();
     // check it may segfault
     while(
-        tokens[exe_pos]->type == identifier_ ||
-        tokens[exe_pos]->type == dollar_     ||
-        tokens[exe_pos]->type == double_quotes_ ||
-        tokens[exe_pos]->type == single_quotes_
+        tokens[exe_pos]->type != space_
     )
     {
         Node *node = new_node(new_token(join_));
@@ -447,19 +493,19 @@ Node *join()
         node->right = prime();
         left = node;
     }
+    if(tokens[exe_pos]->type == space_)
+        skip(space_);
     return left;
 }
 
 Node *prime()
 {
     Node *left = NULL;
-    if(tokens[exe_pos]->type == space_)
-        skip(space_);
+    
     if
     (
         tokens[exe_pos]->type == identifier_    ||
         tokens[exe_pos]->type == dollar_        ||
-        tokens[exe_pos]->type == double_quotes_ ||
         tokens[exe_pos]->type == single_quotes_
     )
     {
@@ -476,7 +522,6 @@ Node *prime()
         (
             tokens[exe_pos]->type == identifier_    ||
             tokens[exe_pos]->type == dollar_        ||
-            tokens[exe_pos]->type == double_quotes_ ||
             tokens[exe_pos]->type == single_quotes_
         )
         {
@@ -490,11 +535,21 @@ Node *prime()
     return left;
 }
 
+
 Value *evaluate(Node *node)
 {
     switch(node->token->type)
     {
-        
+        case identifier_:
+            return node->token;
+        case flag_:
+        {
+            Value *left = evaluate(node->left);
+            Value *right = evaluate(node->right);
+
+        }
+        case space_:
+            return node->token;
     }
 }
 
@@ -503,12 +558,19 @@ void execute()
     while(tokens[exe_pos]->type != end_)
         evaluate(expr());
 }
+#endif
 
 int main(void)
 {
-    printf("\n");
-    text = "cat <<l|<<L<<L<<L cat <Make > a -e > main";
-    printf("%s\n", text);
-    build_tokens();
+    // printf("\n");
+    // text = "\"ls\" \" -la\"";
+    // text = "cat <<l|<<L<<L<<L \"c\"a\"t\" \"<\"M\"ake > a -e > main\"";
+    text = readline(in);
+    // printf("\n%s\n", text);
+
+    Token *curr = build_tokens();
+    while(curr->type != end_)
+        curr = build_tokens();
+
     tk_pos++;
 }
