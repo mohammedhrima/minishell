@@ -1,11 +1,11 @@
 # Ignore the .gitignore file
-/.gitignore
+.gitignore
 
 # Ignore the a.out file in the current folder and all subfolders
 **/a.out
 
 # Ignore the .DS_Store file in any folder
-**/.DS_Store
+.DS_Store
 
 # Ignore the a.out.dSYM folder in the current folder and all subfolders
-**/a.out.dSYM
+a.out.dSYM
