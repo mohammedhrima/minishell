@@ -678,8 +678,8 @@ int main(void)
 {
     // printf("\n");
     // text = "\"ls\" \" -la\"";
-    text = "cat <l|<<L<<L<<L \"c\"a\"t\" \"<\"M\"ake > a -e > main\"";
-    // text = readline(in);
+    // text = "cat <l|<<L<<L<<L \"c\"a\"t\" \"<\"M\"ake > a -e > main\"";
+    text = readline(in); 
     // printf("\n%s\n", text);
 
     Token *curr = build_tokens();
