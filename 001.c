@@ -17,27 +17,20 @@ enum Type
 {
     skip_,
     identifier_,          // can be command, or file
+    // flag_     ,
     dollar_,              // $, expanding will be handled in double_quotes_
     
-    start_expandable_, 
-    end_expandable_,
-                          // if you fine $ expand it
-                          // else search in envp (recognized as command)
-    
-    single_quotes_,  // '
-   
-    string_,
+    // expand
+    expand_,
 
-    // flag_,                // starts with -
+    string_,
     infile_,              // <
     outfile_,             // >
     heredoc_,             // <<
     append_,              // >>
     pipe_,                // |
-    // will be readen as identifier
-    // or double quotes and get expanded after is double quotes
-    env_,               // env
     // curreent built take argument if there is one
+    env_,               // env
     echo_,             
     cd_,                         
     pwd_,
@@ -45,15 +38,21 @@ enum Type
     unset_,         
     exit_,          
     space_,
-    join_,
+    join_, // used to join to nodes if there is noe space between them
     end_,
 };
+
 
 struct Token
 {
     char *content;
-    bool expand;
+    // bool expand;
     Type type;
+    int tk_index;
+    // arguments or to_append
+    char **arguments;
+    int arguments_len;
+    int append_len;   
 };
 
 struct {
@@ -65,24 +64,24 @@ struct {
     {"<", infile_},
     {">", outfile_},
     {"|", pipe_},
-    {"$", dollar_},
+    {"$", dollar_}, // keep it splited because this case my cause problems $"PATH" vs $PATH vs $$
     // {"-", flag_},
     {0 , 0}
 };
 
-// struct {
-//     char*value;
-//     Type type;
-// } alpha_lexic[] = {
-//     {"echo", echo_},
-//     {"cd", cd_},
-//     {"pwd", pwd_},
-//     {"export", export_},
-//     {"unset", unset_},
-//     {"env", env_},
-//     {"exit", exit_},
-//     {0 , 0}
-// };
+struct {
+    char*value;
+    Type type;
+} alpha_lexic[] = {
+    {"echo", echo_},
+    {"cd", cd_},
+    {"pwd", pwd_},
+    {"export", export_},
+    {"unset", unset_},
+    {"env", env_},
+    {"exit", exit_},
+    {0 , 0}
+};
 
 // characters methods
 int ft_isnum(int c) { return (c >= '0' && c <= '9'); }
@@ -183,24 +182,8 @@ char *type_to_string(Type type)
             return "IDENTIFIER";
         case dollar_:
             return "DOLLAR";
-        // case left_double_quotes_:
-        //     return "LEFT DOUBLE QUOTES";
-        // case right_double_quotes_:
-        //     return "RIGHT DOUBLE QUOTES";
-        // case double_quotes_:
-        //     return "DOUBLE QUOTES";
-        // case left_single_quotes_:
-        //     return "LEFT SINGLE QUOTES";
-        // case right_single_quotes_:
-        //     return "RIGHT SINGLE QUOTES";
-        case start_expandable_:
-            return "START EXPANDABLE";
-        case end_expandable_:
-            return "END EXPANDABLE";
-        case single_quotes_:
-            return "SINGLE QUOTES";
-        // case flag_:
-        //     return "FLAG";
+        // case single_quotes_:
+        //     return "SINGLE QUOTES";
         case infile_:
             return "INFILE";
         case outfile_:
@@ -217,22 +200,24 @@ char *type_to_string(Type type)
             return "END"; 
         case string_:
             return "STRING";
-        // case echo_:
-        //     return "ECHO";
-        // case cd_:
-        //     return "CD";
-        // case pwd_:
-        //     return "PWD";
-        // case export_:
-        //     return "EXPORT";
-        // case unset_:
-        //     return "UNSET";
-        // case env_:
-        //     return "ENV";
-        // case exit_:
-        //     return "EXIT";
+        case echo_:
+            return "ECHO";
+        case cd_:
+            return "CD";
+        case pwd_:
+            return "PWD";
+        case export_:
+            return "EXPORT";
+        case unset_:
+            return "UNSET";
+        case env_:
+            return "ENV";
+        case exit_:
+            return "EXIT";
         case join_:
-            return "JOIN";
+            return "JOIN NODE";
+        // case flag_:
+        //     return "FLAG";
         default:
             return "Unknown type";
     }
@@ -256,13 +241,16 @@ Token *tokens[1000];
 
 int tk_pos;
 int exe_pos;
+int tk_index;
 
 Token *new_token(Type type, int start, int end)
 {
     Token *new = ft_calloc(1, sizeof(Token));
     new->content = NULL;
     new->type = type;
-    if(end > start)
+    new->tk_index = tk_index;
+    tk_index++;
+    if(start < end)
     {
         new->content = ft_calloc(end - start + 1, sizeof(char));
         int i = 0;
@@ -272,20 +260,31 @@ Token *new_token(Type type, int start, int end)
             i++;
         }
     }
-
-    // int i = 0;
-    // while(alpha_lexic[i].value)
+    else if(type != join_)
+        new->content = ft_calloc(1, sizeof(char));
+    // printf("check '%s'\n", new->content);
+    // if(
+    //     type == identifier_ ||
+    //     type == string_
+    // )
     // {
-    //     if(ft_strcmp(alpha_lexic[i].value, new->content) == 0)
+    //     int i = 0;
+    //     while(alpha_lexic[i].value)
     //     {
-    //         new->type = alpha_lexic[i].type;
-    //         break;
-    //     }  
-    //     i++;
+    //         if(ft_strcmp(alpha_lexic[i].value, new->content) == 0)
+    //         {
+    //             new->type = alpha_lexic[i].type;
+    //             break;
+    //         }  
+    //         i++;
+    //     }
+    //     // if(new->content[0] == '-')
+    //     //     new->type = flag_;
     // }
+    
     printf("new token with type ");
-    printf("%s", type_to_string(type));
-    print_space_(18 - ft_strlen(type_to_string(type)));
+    printf("%s", type_to_string(new->type));
+    print_space_(18 - ft_strlen(type_to_string(new->type)));
     printf("content '%s'\n", new->content);
 
 
@@ -319,6 +318,7 @@ Token *build_tokens()
             while(text[txt_pos] == ' ')
                 txt_pos++;
             new_token(space_, start, txt_pos);
+            // tk_index++;
             continue;
         }
         // double quotes command
@@ -332,10 +332,13 @@ Token *build_tokens()
                 {
                     new_token(string_, start, txt_pos);
                     txt_pos++; // to skip $
-                    // start = txt_pos;
-                    // while(text[txt_pos] && text[txt_pos] != ' ' && text[txt_pos] != '"')
-                    //     txt_pos++;
+                    start = txt_pos - 1;
                     new_token(dollar_, start, txt_pos);
+                    start = txt_pos;
+                    while(text[txt_pos] && text[txt_pos] != ' ' && text[txt_pos] != '"')
+                        txt_pos++;
+                    new_token(string_, start, txt_pos);
+
                     start = txt_pos; // for the next string
                     // don't increment txt_pos here to skip second " 
                     // because it may cause problems when exiting the while loop
@@ -354,6 +357,7 @@ Token *build_tokens()
         if(text[txt_pos] == '\'')
         {
             txt_pos++; // skip left '
+            
             start = txt_pos;
             while(text[txt_pos] && text[txt_pos] != '\'')
                 txt_pos++;
@@ -363,7 +367,6 @@ Token *build_tokens()
             txt_pos++; // skip right '
             
             continue;
-            // return token;
         }
         // heredoc, redirection, pipe, dollar
         int i = 0;
@@ -391,10 +394,15 @@ Token *build_tokens()
             start = txt_pos;
             while
             (
+#if 0
                 text[txt_pos] != '\0' &&
                 text[txt_pos] != '\'' &&
                 text[txt_pos] != '\"' &&
+                text[txt_pos] != '$' &&
                 text[txt_pos] != ' '
+#else
+                ft_isalphanum(text[txt_pos])
+#endif
             )
             {
                 txt_pos++;
@@ -414,16 +422,17 @@ struct Node
     Node *left;
     Node *right;
     Token *token;
+    
 };
 
 void skip(Type type)
 {
-    if(tokens[tk_pos]->type != type)
+    if(tokens[exe_pos]->type != type)
     {
         printf("Error Expected '%s'\n", type_to_string(type));
         exit(0);
     }
-    tk_pos++;
+    exe_pos++;
 }
 
 Node *new_node(Token *token)
@@ -437,33 +446,46 @@ Node *new_node(Token *token)
 Node *expr();        // expression
 Node *pipe_node();   // |
 Node *redirection(); // < > << >>
-Node *flag();        // flag
-Node *join();        // join two
+Node *arguments();      // join two
+Node *appends();
 Node *prime();       // file, command, path
                      // built in commands: echo, cd, pwd, export, unset, env, exit
-#if 0
+
 Node *expr()
 {
     return pipe_node();
 }
 
+// split commad by |
 Node *pipe_node()
 {
+    // printf("Call pipe\n");
     Node *left = redirection();
+    if(tokens[exe_pos]->type == space_)
+        skip(space_); // to be verified
     while (tokens[exe_pos]->type == pipe_)
     {
+        // printf("found pipe\n");
         Node *node = new_node(tokens[exe_pos]);
         skip(pipe_);
         node->left = left;
         node->right = redirection();
         left = node;
+        if(tokens[exe_pos]->type == space_)
+            skip(space_); // to be verified
     }
     return left;
 }
 
+// to be verified
 Node *redirection()
 {
-    Node *left = join();
+    // Node *left = arguments();
+    Node *left = NULL;
+    if(tokens[exe_pos]->type == space_)
+        skip(space_); // to be verified
+    int limit = 0;
+    
     while(
         tokens[exe_pos]->type == heredoc_ ||
         tokens[exe_pos]->type == append_ ||
@@ -472,105 +494,197 @@ Node *redirection()
     )
     {
         Node *node = new_node(tokens[exe_pos]);
+        // if(left == NULL)
+        //     left = node;
         skip(tokens[exe_pos]->type);
+        // node->left = left;
         node->left = left;
-        node->right = join();
+        node->right = arguments();
         left = node;
+        limit++;
+        if(limit > 14)
+        {
+            printf("You exited the limit of heredocs\n");
+            exit(0);
+        }
+        if(tokens[exe_pos]->type == space_)
+            skip(space_); // to be verified
+    }
+    if(limit)
+        return left;
+    return arguments();
+}
+
+// if there is space between commands
+// append on left
+Node *arguments()
+{
+    // printf("call join\n");
+    Node *left = appends();
+
+    Node *tmp = left;
+    if
+    ( 
+        tokens[exe_pos]->type == space_ && (
+        tokens[exe_pos + 1]->type == identifier_ ||
+        tokens[exe_pos + 1]->type == dollar_ ||
+        tokens[exe_pos + 1]->type == string_ )
+    )
+    {
+        skip(space_); // to be verified
+        left->token->arguments_len++;
+        tmp->left = appends();
+        tmp = tmp->left;
     }
     return left;
 }
 
-Node *join()
+Node *appends()
 {
     Node *left = prime();
-    // check it may segfault
-    while(
-        tokens[exe_pos]->type != space_
-    )
+    Node *tmp = left;
+    while
+    ( 
+        tokens[exe_pos]->type == identifier_ ||
+        tokens[exe_pos]->type == dollar_ ||
+        tokens[exe_pos]->type == string_ )
     {
-        Node *node = new_node(new_token(join_));
-        node->left = left;
-        node->right = prime();
-        left = node;
+        left->token->append_len++;
+        tmp->right = prime();
+        tmp = tmp->right;
     }
-    if(tokens[exe_pos]->type == space_)
-        skip(space_);
     return left;
 }
 
+// if there is no space between command
+// append on right
 Node *prime()
 {
+    // printf("call prime\n");
     Node *left = NULL;
+    if(tokens[exe_pos]->type == space_)
+        skip(space_); // to be verified
     
-    if
-    (
-        tokens[exe_pos]->type == identifier_    ||
-        tokens[exe_pos]->type == dollar_        ||
-        tokens[exe_pos]->type == single_quotes_
-    )
+    if (tokens[exe_pos]->type == dollar_ || tokens[exe_pos]->type == identifier_ || tokens[exe_pos]->type == string_)
     {
-        left = new_node(tokens[exe_pos]); // to check after
+        Node *node = new_node(tokens[exe_pos]);
         skip(tokens[exe_pos]->type);
-        return left;
+        return node;
     }
-    if(tokens[exe_pos]->type == echo_)
-    {
-        Node *left = new_node(tokens[exe_pos]);
-        skip(tokens[exe_pos]->type);
-        Node *node = left;
-        while
-        (
-            tokens[exe_pos]->type == identifier_    ||
-            tokens[exe_pos]->type == dollar_        ||
-            tokens[exe_pos]->type == single_quotes_
-        )
-        {
-            node->left = new_node(tokens[exe_pos]);
-            skip(tokens[exe_pos]->type);
-            if(tokens[exe_pos]->type == space_)
-                skip(space_);
-            node = node->left;
-        }
-    }
+    printf("Error in prime\n");
+    exit(0);
     return left;
 }
 
-
+#if 1
 Value *evaluate(Node *node)
 {
+    // printf("evaluate %s", type_to_string(node->token->type));
+    // print_space_(18 - ft_strlen(type_to_string(node->token->type)));
+    // printf("content '%s'\n", node->token->content);
     switch(node->token->type)
     {
-        case identifier_:
-            return node->token;
-        case flag_:
+        case pipe_:
         {
-            Value *left = evaluate(node->left);
+            // printf("pipe\n");
+            Value *left = evaluate(node->left); // when evaluating command fork and execute it
+                                                // return it pid
             Value *right = evaluate(node->right);
+            // verify errors !!
+            // execute left 
+            // printf("pipe has left: %s\n", node->left->token->content);
+            // printf("pipe has right: %s\n", node->right->token->content);
 
+            return NULL;
+            // exit(0);
         }
-        case space_:
+        case identifier_:
+        {
+            // 1- fork
+            // 2- execute command
+            // 3- return its pid from parrent process
+            Value *curr = node->token;
+            Node *tmp = node->left;
+            if(node->right)
+                curr->content = strjoin(curr->content, evaluate(node->right)->content);
+            printf("command is %s\n", curr->content);
+            if(tmp)
+            {
+                printf("    has current arguments:\n");
+                curr->arguments = ft_calloc(node->token->arguments_len + 1, sizeof(char*));
+                int i = 0;
+                while(i < node->token->arguments_len)
+                {
+                    curr->arguments[i] = tmp->token->content;
+                    printf("        %s\n", curr->arguments[i]);
+                    tmp = tmp->left;
+                    i++;
+                }
+            }
+            printf("\n");
+            // curr->arguments = argu
+            // exit(0);
+            return curr;
+        }
+        case string_:
+        {
+            // 1- fork
+            // 2- execute command
+            // 3- return its pid
             return node->token;
+        }
+        case dollar_:
+        {
+            // check node left
+            // search in envp
+            return node->left->token;
+        }
+        case infile_:
+        {
+            printf("set %s as input\n", node->right->token->content);
+            return node->token;
+        }
+        case outfile_:
+        {
+            printf("set %s as output\n", node->right->token->content);
+            return node->token;
+        }
+        case heredoc_:
+        {
+            printf("open heredoc with %s\n", node->right->token->content);
+            return node->token;
+        }
+        case append_:
+        {
+            printf("append to file %s\n", node->right->token->content);
+            return node->token;
+        }
+        default:
+        {
+            printf("Unknown token in evaluate\n");
+            exit(0);
+        }
     }
 }
+#endif
 
 void execute()
 {
     while(tokens[exe_pos]->type != end_)
         evaluate(expr());
 }
-#endif
 
 int main(void)
 {
     // printf("\n");
     // text = "\"ls\" \" -la\"";
-    // text = "cat <<l|<<L<<L<<L \"c\"a\"t\" \"<\"M\"ake > a -e > main\"";
-    text = readline(in);
+    text = "cat <l|<<L<<L<<L \"c\"a\"t\" \"<\"M\"ake > a -e > main\"";
+    // text = readline(in);
     // printf("\n%s\n", text);
 
     Token *curr = build_tokens();
     while(curr->type != end_)
         curr = build_tokens();
-
     tk_pos++;
+    execute();
 }
