@@ -1,27 +1,26 @@
-ls -> ls
-l's' -> ls
-l"s" -> ls
-"$PATH"ls
-
-
-starts from left " keep going till right ", if found 
-
-+ when evaluating:
-    - evaluate, if it's a variable: replace it with its content 
-        if it's between ""
-    - while there isn't space evaluate current and join it 
-        to the next
-
++ split env store it array of tokens
 + store env somewhere
 + $ get what after '$' and search for it in env, and return it
 + unset remove from env
 + export:
-    + env and export share the same data
-    + add variable to stock if it exists 
-        only modify else create it
-    + if call export -> print declare -x + print everything 
-        (has value or don't have)
-    + if call env -> print only that has value
+    + without arguments:
+        + print (declare -x) + what in env 
+    + with arguments:
+        + if assignement
+            + if exists:
+                - modify it
+            + else:
+                - add variable to env
++ env:
+    + print only those who have value
 
 + step 1:
-do evualation by returning it's content as string
+    do evualation by returning it's content as string
+
++ use realloc:
+    will be used to hold address
+    will be used to e
+    
++ loop throw env:
+    + build nodes of assignement
+    + add them to an array named env

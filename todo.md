@@ -5,20 +5,6 @@
 + exeucution:
     verify fork shit ...
 
-mandatory:
-'' single quote
-- check n number of '' of n / 2 id odd print content of variable
-- check n number of '' of n / 2 id even print name of variable
-- flags wll be evaluated in evluation
-
-
-"" double quote
-- always print content
-
-l"s" is a single command
-
-l""s" : syntax error
-
 < redirect input
 > redirect output
 
@@ -34,6 +20,7 @@ $ ()
 echo
 cd
 pwd
+export
 unset
 env (command)
 exit
@@ -43,3 +30,4 @@ bonus:
     && || *
 
 verify norm before pushing
+verify calloc,realloc (remove them from code)

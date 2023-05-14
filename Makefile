@@ -1,4 +1,3 @@
 all:
-	gcc -fsanitize=address -fsanitize=null -g3 001.c
+	gcc -fsanitize=address -fsanitize=null -g3 minishell.c
 	./a.out
-	rm -r a.out*

@@ -17,13 +17,21 @@ enum Type
 {
     skip_,
     identifier_,          // can be command, or file
+    string_,
+
+    // array_,
+    args_,
+    append_,
+
     // flag_     ,
     dollar_,              // $, expanding will be handled in double_quotes_
     
+    assign_,
     // expand
     expand_,
 
-    string_,
+
+
     infile_,              // <
     outfile_,             // >
     heredoc_,             // <<
@@ -45,14 +53,28 @@ enum Type
 
 struct Token
 {
-    char *content;
+    char *name;
     // bool expand;
     Type type;
     int tk_index;
-    // arguments or to_append
-    char **arguments;
-    int arguments_len;
-    int append_len;   
+    // // arguments or to_append
+    // char **arguments;
+    // int arguments_len;
+    // int append_len;
+    union
+    {
+        // number
+        long number;
+        // characters
+        char *string;
+        // arguments
+        struct
+        {
+            Token **array;
+            int array_len;
+        };
+
+    };  
 };
 
 struct {
@@ -65,7 +87,6 @@ struct {
     {">", outfile_},
     {"|", pipe_},
     {"$", dollar_}, // keep it splited because this case my cause problems $"PATH" vs $PATH vs $$
-    // {"-", flag_},
     {0 , 0}
 };
 
@@ -107,6 +128,23 @@ void    ft_strncpy(char *dest, char *src, int size)
         i++;
     }
 }
+char	*ft_strchr(char *string, int c)
+{
+	int	i;
+
+	i = 0;
+	if (!string)
+		return (NULL);
+	while (string[i])
+	{
+		if (string[i] == (char)c)
+			return (string + i);
+		i++;
+	}
+	if (c == 0 && string[i] == 0)
+		return (string + i);
+	return (NULL);
+}
 int     ft_strncmp(char *s1, char *s2, size_t n)
 {
     size_t i = 0;
@@ -123,55 +161,142 @@ int     ft_strcmp(char *s1, char *s2)
         i++;
     return ((unsigned char)s1[i] - (unsigned char)s2[i]);
 }
-void    *ft_calloc(size_t count, size_t size)
-{
-	void			*arr;
-	unsigned char	*ptr;
-	size_t			i;
 
-	arr = (void *)malloc(count * size);
-	if (!arr)
-		return (NULL);
+// memes
+void	ft_memset(void *pointer, int c, size_t len)
+{
+	size_t			i;
+	unsigned char	*tmp;
+
+	tmp = (unsigned char *)pointer;
 	i = 0;
-	ptr = (unsigned char *)arr;
-	while (i < count * size)
+	while (tmp && i < len)
 	{
-		ptr[i] = 0;
+		tmp[i] = c;
 		i++;
 	}
-	return (arr);
+	// return (b);
+}
+void	*ft_memcpy(void *destination, void *source, size_t len)
+{
+	size_t	i;
+	char	*pointer1;
+	char	*pointer2;
+
+	if (!destination)
+		return (source);
+	if (!source)
+		return (destination);
+	pointer1 = (char *)destination;
+	pointer2 = (char *)source;
+	i = 0;
+	while (i < len)
+	{
+		pointer1[i] = pointer2[i];
+		i++;
+	}
+	return (destination);
+}
+
+void    *ft_calloc(size_t count, size_t size)
+{
+	void			*new;
+	unsigned char	*pointer;
+	size_t			i;
+
+	new = (void *)malloc(count * size);
+	if (!new)
+		return (NULL);
+	i = 0;
+	pointer = (unsigned char *)new;
+	while (i < count * size)
+	{
+		pointer[i] = 0;
+		i++;
+	}
+	return (new);
+}
+
+void *ft_realloc(void *pointer, size_t new_len)
+{
+    void *new = ft_calloc(1, new_len);
+    if(pointer == NULL)
+    {
+        // pointer = tmp;
+        return new;
+    }
+    int len = 0;
+    while(((unsigned char *)pointer)[len] != 0)
+        len++;
+    if(len >= new_len)
+    {
+        printf("Error in realloc\n");
+        exit(1);
+    }
+    ft_memcpy(new, pointer, len);
+    free(pointer);
+    return new;
+}
+
+char **split(char *str, char *spliter)
+{
+    int i = 0;
+    int j = 0;
+    char **res = NULL;
+    int start = 0;
+    if(ft_strncmp(str + i, spliter, ft_strlen(spliter)) == 0)
+        i += ft_strlen(spliter);
+    start = i;
+    while(str && str[i])
+    {
+        while(ft_strncmp(str + i, spliter, ft_strlen(spliter)) == 0)
+            i += ft_strlen(spliter);
+        start = i;
+        while(str[i] && ft_strncmp(str + i, spliter, ft_strlen(spliter)) != 0)
+            i++;
+        res = ft_realloc(res, (j + 2)*sizeof(char*));
+        res[j] = ft_calloc(i - start + 1, sizeof(char));
+        ft_strncpy(res[j], str + start, i - start);
+        j++;
+        res[j] = NULL;
+    }
+    return res;
 }
 
 // readline
-char *strjoin(char *string1, char *string2)
+char *strjoin(char *string1, char *string2, char *string3)
 {
-    char *res = ft_calloc(ft_strlen(string1) + ft_strlen(string2) + 1, sizeof(char));
+    char *res = ft_calloc(ft_strlen(string1) + ft_strlen(string2) + ft_strlen(string3) + 1, sizeof(char));
     if (string1)
         ft_strncpy(res, string1, ft_strlen(string1));
     if (string2)
         ft_strncpy(res + ft_strlen(res), string2, ft_strlen(string2));
+    if (string3)
+        ft_strncpy(res + ft_strlen(res), string3, ft_strlen(string3));
     return res;
 }
-char *readline(int fd)
+char *ft_readline(int fd)
 {
     char *res = NULL;
     char *c = ft_calloc(2, sizeof(char));
-    char *tmp;
 
     while (1)
     {
         int n = read(fd, c, sizeof(char));
         if (n <= 0)
             break;
-        tmp = strjoin(res, c);
-        free(res);
-        res = tmp;
         if (c[0] == '\n' || c[0] == '\0')
             break;
+        res = ft_realloc(res, ft_strlen(res) + 2);
+        res[ft_strlen(res)] = c[0];
     }
-    if(tmp)
-        tmp[ft_strlen(tmp) - 1] = '\0'; // replace newline with /0
     return res;
+}
+
+// printing
+void ft_putstr(int fd, char *str)
+{
+    write(fd, str, ft_strlen(str));
 }
 
 char *type_to_string(Type type)
@@ -246,48 +371,42 @@ int tk_index;
 Token *new_token(Type type, int start, int end)
 {
     Token *new = ft_calloc(1, sizeof(Token));
-    new->content = NULL;
+    // new->content = NULL;
     new->type = type;
     new->tk_index = tk_index;
     tk_index++;
     if(start < end)
     {
-        new->content = ft_calloc(end - start + 1, sizeof(char));
-        int i = 0;
-        while(start + i < end)
+        if(type == string_)
         {
-            new->content[i] = text[start + i];
-            i++;
+            new->string = ft_calloc(end - start + 1, sizeof(char));
+            int i = 0;
+            while(start + i < end)
+            {
+                new->string[i] = text[start + i];
+                i++;
+            }
+        }
+        if(type == identifier_)
+        {
+            new->name = ft_calloc(end - start + 1, sizeof(char));
+            int i = 0;
+            while(start + i < end)
+            {
+                new->name[i] = text[start + i];
+                i++;
+            }
         }
     }
-    else if(type != join_)
-        new->content = ft_calloc(1, sizeof(char));
-    // printf("check '%s'\n", new->content);
-    // if(
-    //     type == identifier_ ||
-    //     type == string_
-    // )
-    // {
-    //     int i = 0;
-    //     while(alpha_lexic[i].value)
-    //     {
-    //         if(ft_strcmp(alpha_lexic[i].value, new->content) == 0)
-    //         {
-    //             new->type = alpha_lexic[i].type;
-    //             break;
-    //         }  
-    //         i++;
-    //     }
-    //     // if(new->content[0] == '-')
-    //     //     new->type = flag_;
-    // }
-    
+    // else if(type != join_)
+    //     new->content = ft_calloc(1, sizeof(char));
     printf("new token with type ");
     printf("%s", type_to_string(new->type));
     print_space_(18 - ft_strlen(type_to_string(new->type)));
-    printf("content '%s'\n", new->content);
-
-
+    if(new->type == string_)
+        printf("with value '%s'\n", new->string);
+    if(new->type == identifier_)
+        printf("with name '%s'\n", new->name);
     tokens[tk_pos] = new;
     tk_pos++;
     return new;
@@ -394,14 +513,14 @@ Token *build_tokens()
             start = txt_pos;
             while
             (
-#if 0
+#if 1
                 text[txt_pos] != '\0' &&
                 text[txt_pos] != '\'' &&
-                text[txt_pos] != '\"' &&
+                text[txt_pos] != '"' &&
                 text[txt_pos] != '$' &&
                 text[txt_pos] != ' '
 #else
-                ft_isalphanum(text[txt_pos])
+                ft_isalphanum(text[txt_pos]) || text[txt_pos] == '-'
 #endif
             )
             {
@@ -422,7 +541,6 @@ struct Node
     Node *left;
     Node *right;
     Token *token;
-    
 };
 
 void skip(Type type)
@@ -456,10 +574,22 @@ Node *expr()
     return pipe_node();
 }
 
+Node *assign()
+{
+    Node *left = pipe_node();
+    while (tokens[exe_pos]->type == assign_)
+    {
+        Node *node = new_node(tokens[exe_pos]);
+        node->left = left;
+        node->right = prime();
+        left = node;
+    }
+    return left;
+}
+
 // split commad by |
 Node *pipe_node()
 {
-    // printf("Call pipe\n");
     Node *left = redirection();
     if(tokens[exe_pos]->type == space_)
         skip(space_); // to be verified
@@ -523,7 +653,7 @@ Node *arguments()
     Node *left = appends();
 
     Node *tmp = left;
-    if
+    while
     ( 
         tokens[exe_pos]->type == space_ && (
         tokens[exe_pos + 1]->type == identifier_ ||
@@ -565,18 +695,144 @@ Node *prime()
     if(tokens[exe_pos]->type == space_)
         skip(space_); // to be verified
     
-    if (tokens[exe_pos]->type == dollar_ || tokens[exe_pos]->type == identifier_ || tokens[exe_pos]->type == string_)
+    if (
+        tokens[exe_pos]->type == dollar_ ||
+        tokens[exe_pos]->type == identifier_ ||
+        tokens[exe_pos]->type == string_)
     {
         Node *node = new_node(tokens[exe_pos]);
         skip(tokens[exe_pos]->type);
         return node;
     }
+    
     printf("Error in prime\n");
     exit(0);
     return left;
 }
 
-#if 1
+// Execution
+char **PATH;
+
+char *get_command(char *cmd)
+{
+    if(cmd == NULL || ft_strchr(cmd, '/'))
+        return cmd;
+    int i = 0;
+    while(PATH && PATH[i])
+    {
+        // printf("PATH[%d] = %s\n", i, PATH[i]);
+        char *res = strjoin(PATH[i], "/", cmd);
+        if (access(res, F_OK) == 0 && access(res, X_OK) == 0)
+		{
+            return (res);
+        }
+        i++;
+    }
+    return cmd;
+    exit(0);
+}
+
+// built in functions
+void echo_func(Node *node)
+{
+    // evaluate them after  , arguemnts must be an array of tokens in stead of char*
+    int i = 0;
+    while(node && node->token->arguments && node->token->arguments[i])
+    {
+        printf("%s ", node->token->arguments[i]);
+        i++;
+    }
+}
+void pwd_func(Node *node)
+{
+    char s[100];
+    printf("%s\n", getcwd(s, 100));
+}
+
+void cd_func(Node *node)
+{
+#if 0
+    int i = 0;
+    while(node && node->token->arguments && node->token->arguments[i])
+    {
+        printf("%s ", node->token->arguments[i]);
+        i++;
+    }
+    chdir(node->token->content);
+#else
+    // to be verified
+    // pwd_(node);
+    chdir(node->token->arguments[0]);
+    // pwd_(node);
+#endif
+}
+
+extern char **environ;
+void env_func(Node *node)
+{
+    int i = 0;
+    while(environ && environ[i])
+    {
+        // check if ft_strchr(&evirment[i] , '=') // print only thos who
+        printf("%s\n", environ[i]);
+        i++;
+    }
+}
+
+void export_func(Node *node)
+{
+    // check if node ^ is NULL
+    if(node)
+    {
+
+    }
+    else
+    {
+        // print only what in envirement
+        int i = 0;
+        while(environ && environ[i])
+        {
+            printf("declare -x %s\n", environ[i]);
+            i++;
+        }
+    }
+    // else it's a variable declaration
+}
+
+void exit_func(Node *node)
+{
+    exit(0); // verify exit code after
+}
+// make this function return the address fo built in fucntions
+void* built_in(char *cmd)
+{
+    // return
+    // (
+    //     ft_strcmp(cmd, "echo") == 0   ||
+    //     ft_strcmp(cmd, "cd") == 0     ||
+    //     ft_strcmp(cmd, "pwd") == 0    ||
+    //     ft_strcmp(cmd, "export") == 0 ||
+    //     ft_strcmp(cmd, "unset") == 0  ||
+    //     ft_strcmp(cmd, "env") == 0    ||
+    //     ft_strcmp(cmd, "exit") == 0 
+    // );
+    if(ft_strcmp(cmd, "echo") == 0)
+        return &echo_func;
+    if(ft_strcmp(cmd, "cd") == 0)
+        return &cd_func;
+    if(ft_strcmp(cmd, "pwd") == 0)
+        return &pwd_func;
+    if(ft_strcmp(cmd, "export") == 0)
+        return &export_func;
+    if(ft_strcmp(cmd, "env") == 0)
+        return &env_func;
+    if(ft_strcmp(cmd, "exit") == 0)
+        return &exit_func;
+    
+    return NULL;
+}
+
+
 Value *evaluate(Node *node)
 {
     // printf("evaluate %s", type_to_string(node->token->type));
@@ -586,7 +842,12 @@ Value *evaluate(Node *node)
     {
         case pipe_:
         {
-            // printf("pipe\n");
+            /*
+            execve takes command as follow
+                char *arg[] = {"ls", "-la", NULL};
+                execve("/bin/ls", arg, NULL);
+            */
+            printf("\nopen pipe:\n");
             Value *left = evaluate(node->left); // when evaluating command fork and execute it
                                                 // return it pid
             Value *right = evaluate(node->right);
@@ -606,19 +867,50 @@ Value *evaluate(Node *node)
             Value *curr = node->token;
             Node *tmp = node->left;
             if(node->right)
-                curr->content = strjoin(curr->content, evaluate(node->right)->content);
-            printf("command is %s\n", curr->content);
-            if(tmp)
             {
-                printf("    has current arguments:\n");
-                curr->arguments = ft_calloc(node->token->arguments_len + 1, sizeof(char*));
-                int i = 0;
-                while(i < node->token->arguments_len)
+                Value *right = evaluate(node->right);
+                if(right->type == identifier_) // try useinf ft_realloc here
+                    curr->name = strjoin(curr->name, right->name, 0);
+                if(right->type == string_)
+                    curr->name = strjoin(curr->name, right->string, 0);
+            }
+            
+            void (*func)(Node*) = built_in(curr->name);
+            if(func)
+            {
+                printf("built in is %s\n", curr->name);
+                if(tmp)
                 {
-                    curr->arguments[i] = tmp->token->content;
-                    printf("        %s\n", curr->arguments[i]);
-                    tmp = tmp->left;
-                    i++;
+                    printf("    has current arguments:\n");
+                    curr->arguments = ft_calloc(node->token->arguments_len + 1, sizeof(char*));
+                    int i = 0;
+                    while(i < node->token->arguments_len)
+                    {
+                        curr->arguments[i] = evaluate(tmp);
+                        printf("        %s\n", curr->arguments[i]);
+                        tmp = tmp->left;
+                        i++;
+                    }
+                }   
+                (*func)(node);
+                // exit(0);
+            }
+            else
+            {    
+                curr->content = get_command(curr->content);
+                printf("command is %s\n", curr->content);
+                if(tmp)
+                {
+                    printf("    has current arguments:\n");
+                    curr->arguments = ft_calloc(node->token->arguments_len + 1, sizeof(char*));
+                    int i = 0;
+                    while(i < node->token->arguments_len)
+                    {
+                        curr->arguments[i] = tmp->token->content;
+                        printf("        %s\n", curr->arguments[i]);
+                        tmp = tmp->left;
+                        i++;
+                    }
                 }
             }
             printf("\n");
@@ -637,25 +929,31 @@ Value *evaluate(Node *node)
         {
             // check node left
             // search in envp
+            printf("Search for variable\n");
+
             return node->left->token;
         }
         case infile_:
         {
+            // don't evaluate right
             printf("set %s as input\n", node->right->token->content);
             return node->token;
         }
         case outfile_:
         {
+            // don't evaluate right
             printf("set %s as output\n", node->right->token->content);
             return node->token;
         }
         case heredoc_:
         {
+            // don't evaluate right
             printf("open heredoc with %s\n", node->right->token->content);
             return node->token;
         }
         case append_:
         {
+            // don't evaluate right
             printf("append to file %s\n", node->right->token->content);
             return node->token;
         }
@@ -666,7 +964,6 @@ Value *evaluate(Node *node)
         }
     }
 }
-#endif
 
 void execute()
 {
@@ -674,17 +971,52 @@ void execute()
         evaluate(expr());
 }
 
-int main(void)
+extern char **environ;
+
+int main(int argc, char **argv, char **envp)
 {
-    // printf("\n");
+    // exit(0);
+    // char *name = getenv("");
+    // printf("-> %s\n", name);
+    // exit(0);
+    // int i = 0;
+    char *str = NULL;
+    // char **PATH;
+    for(int i = 0; envp && envp[i] ;i++)
+    {
+        // printf("-> %s\n", envp[i]);
+        if(ft_strncmp("PATH", envp[i], ft_strlen("PATH")) == 0)
+        {
+            // printf("Found PATH\n\n");
+            PATH = split(envp[i], ":");
+            break;
+        }
+    }
+    // printf("PATHS are:\n");
+    // for(int i = 0; PATH && PATH[i]; i++)
+    // {
+    //     printf("%s\n", PATH[i]);
+    // }
+
+    // exit(0);
+    printf("\n");
     // text = "\"ls\" \" -la\"";
     // text = "cat <l|<<L<<L<<L \"c\"a\"t\" \"<\"M\"ake > a -e > main\"";
-    text = readline(in); 
+    // envirement = envp;
     // printf("\n%s\n", text);
+    while(1)
+    {
+        ft_putstr(out, "minishell> ");
+        text = readline(in); 
+        Token *curr = build_tokens();
+        while(curr->type != end_)
+            curr = build_tokens();
+        tk_pos++;
+        execute();
+        ft_memset(tokens, 0, 1000); // yo be removed after because you need to free, nodes and tokens
+        tk_pos = 0;
+        txt_pos = 0;
+        exe_pos = 0;
+    }
 
-    Token *curr = build_tokens();
-    while(curr->type != end_)
-        curr = build_tokens();
-    tk_pos++;
-    execute();
 }
