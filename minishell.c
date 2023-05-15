@@ -38,9 +38,12 @@ char **PATH;
 // file descriptors
 int input_fd = in;
 int output_fd = out;
+int fd[2];
 
 // Envp
 char **global_envp;
+
+
 
 // types
 enum Type
@@ -915,11 +918,13 @@ Value *evaluate(Node *node)
                         ft_printf(out, "'%s' ", arguments[i]);
                         i++;
                     }
+                    ft_printf(out, "\n");
                 }
                 process_id = fork();
                 // check if fork fail
                 if(process_id == 0)
                 {
+                    ft_printf(out, "child process\n");
                     dup2(input_fd, in);
                     dup2(output_fd, out);
 
@@ -927,11 +932,12 @@ Value *evaluate(Node *node)
                     close(fd[0]);
                     close(fd[1]);
 
-                    ft_printf(out, "child process\n");
                     if(execve(command_to_execute, arguments, global_envp) < 0)
                         ft_printf(err, "Execve failed\n");
                 }
-                ft_printf(out, "parent process\n");
+                else if(process_id < 0)
+                    ft_printf(err, "fork did failed\n");
+                ft_printf(out, "parent process\n\n");
             }
             Value *res = new_token(pid_,0 ,0);
             res->process_id = process_id;
@@ -959,9 +965,15 @@ Value *evaluate(Node *node)
             output_fd = out;
             Value *right = evaluate(node->right);
 
-            if(left->type)
-            waitpid(pid1, NULL, 0);
-            waitpid(pid2, NULL, 0);
+            if(left->type != pid_ || right->type != pid_)
+                ft_printf(err, "Error in pipe_ expected pid_\n");
+            waitpid(left->process_id, NULL, 0);
+            waitpid(right->process_id, NULL, 0);
+
+            input_fd = in;
+            output_fd = out;
+            close(fd[0]);
+            close(fd[1]);
             return NULL;
         }
         default:
