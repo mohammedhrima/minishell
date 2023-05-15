@@ -1,5 +1,3 @@
-+ split env store it array of tokens
-+ store env somewhere
 + $ get what after '$' and search for it in env, and return it
 + unset remove from env
 + export:
@@ -17,10 +15,21 @@
 + step 1:
     do evualation by returning it's content as string
 
-+ use realloc:
-    will be used to hold address
-    will be used to e
-    
-+ loop throw env:
-    + build nodes of assignement
-    + add them to an array named env
+evaluate: return var
+    + var can have type command_
+    + type pid_
+
++ plan changed:
+    Token will have:
+        char *command
+        int isexpandable
+        int join_len (see if you can remove it)
+        int arguments_len (see if you can remove it)
+
++ in $ :
+    - check left
+    - expand it
+    - return expanded left
+    - check if has left to join them (risky !!!)
+
++ Value should return it's pid if command
