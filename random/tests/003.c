@@ -4,54 +4,78 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#define out STDOUT_FILENO
+#define in STDIN_FILENO
 
-int main(int argc, char* argv[], char **envp) {
-    int fd[2];
-    if (pipe(fd) == -1) {
-        return 0;
+typedef struct
+{
+    char *command;
+    char **arguments;
+} cmd;
+#define len 3
+int main(int argc, char *argv[], char **envp)
+{
+
+    cmd cmds[len];
+    cmds[0].command = "/bin/ls";
+    cmds[0].arguments = (char *[]){"ls", "-la", NULL};
+
+    cmds[1].command = "/usr/bin/grep";
+    cmds[1].arguments = (char *[]){"grep", "\\.c$", NULL};
+
+    cmds[2].command = "/usr/bin/wc";
+    cmds[2].arguments = (char *[]){"wc", "-w", NULL};
+
+    int *fd = calloc(2, sizeof(int));
+    if (pipe(fd) != 0)
+    {
+        printf("Error opennign pipe\n");
+        exit(0);
     }
-    
-    int pid1 = fork();
-    if (pid1 < 0) {
-        return 2;
-    }
-    
-    if (pid1 == 0) {
-        // Child process 1 (ping)
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[0]);
-        close(fd[1]);
-        char *cmd1 = "/bin/ls";
-        char *args1[] = {"ls", "-la", NULL};
-        if(execve(cmd1, args1, envp) < 0)
+
+    int i = 0;
+    while (i < len)
+    {
+        int pid = fork();
+        if (pid < 0)
         {
-            printf("Execve failed 1\n");
+            printf("Failed forking\n");
+            exit(0);
         }
-    }
-    
-    int pid2 = fork();
-    if (pid2 < 0) {
-        return 3;
-    }
-    
-    if (pid2 == 0) {
-        // Child process 2 (grep)
-        dup2(fd[0], STDIN_FILENO);
-        close(fd[0]);
-        close(fd[1]);
-        char *cmd2 = "/usr/bin/wc";
-        char *args2[] = {"wc", "-w", NULL};
-        if(execve(cmd2, args2, envp) < 0)
+        else if (pid == 0)
         {
-            printf("Execve failed 2\n");
+            printf("Execute: %s\n", cmds[i].command );
+            // child process
+            if (i + 1 < len)
+                dup2(fd[1], STDOUT_FILENO);
+            if (i > 0)
+                dup2(fd[0], STDIN_FILENO);
+            close(fd[0]);
+            close(fd[1]);
+            if (execve(cmds[i].command, cmds[i].arguments, envp) < 0)
+            {
+                printf("Execve failed %d\n", i);
+            }
         }
+        else
+        {
+            // parent process
+            close(fd[0]);
+            close(fd[1]);
+            fd = calloc(2, sizeof(int));
+            // if(i == 0)
+            //     dup2(fd[0], 0);
+            pipe(fd);
+        }
+        i++;
     }
-    
-    close(fd[0]);
-    close(fd[1]);
-    
-    waitpid(pid1, NULL, 0);
-    waitpid(pid2, NULL, 0);
-    
+
+    i = 0;
+    while (i < len)
+    {
+        wait(NULL);
+        i++;
+    }
+
     return 0;
 }
