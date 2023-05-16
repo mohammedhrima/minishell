@@ -644,12 +644,14 @@ Node *pipe_node()
         skip(space_); // to be verified
     if (tokens[exe_pos]->type == pipe_)
     {
-#if 0 // build a solution
+#if 1 
+        // build a solution
         ft_printf(out, "find pipe %d\n", i);
         i++;
         Node *node = new_node(tokens[exe_pos]);
         skip(pipe_);
         node->left = left;
+        
         if(tokens[exe_pos]->type == space_)
             skip(space_); // to be verified
         while (tokens[exe_pos]->type == pipe_)
