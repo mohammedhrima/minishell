@@ -581,6 +581,7 @@ bool check(Type type, Type array[], int len)
 }
 
 Node *expr();        // expression
+Node *assign();      // assignement
 Node *pipe_node();   // |
 Node *prime();       // file, command, argument, built in commands: echo, cd, pwd, export, unset, env, exit
 
@@ -589,6 +590,22 @@ Node *expr()
     ft_printf(out, "call expr\n");
     return pipe_node();
 }
+
+// =
+// Node *assign()
+// {
+//     ft_printf(out, "call assign\n");
+//     Node *left = pipe_node();
+//     while (tokens[exe_pos]->type == assign_)
+//     {
+//         Node *node = new_node(tokens[exe_pos]);
+//         skip(assign_);
+//         node->left = left;
+//         node->right = pipe_node();
+//         left = node;
+//     }
+//     return left;
+// }
 
 Node *pipe_node()
 {
@@ -662,24 +679,7 @@ void cd_func(char **arguments)
 {
     /// evaluate them after  , arguemnts must be an array of tokens in stead of char*
     // arguments might be expandables
-    if(arguments[0])
-        chdir(arguments[0]);
-    else
-    {
-        int i = 0;
-        char *location = "/";
-        while (envirement && envirement[i])
-        {
-            if(envirement[i]->left->token->content && ft_strcmp(envirement[i]->left->token->content, "HOME") == 0)
-            {
-                location = envirement[i]->right->token->content;
-                // ft_printf(out, "found in cd: %s\n", location);
-                break;
-            }
-            i++;
-        }
-        chdir(location);
-    }
+    chdir(arguments[0]);
 }
 void pwd_func(char **arguments)
 {
@@ -687,6 +687,7 @@ void pwd_func(char **arguments)
 }
 void export_func(char **arguments)
 {
+    int i = 0;
     if(arguments[0])
     {
         char **array = split(arguments[0], "=");
@@ -701,7 +702,6 @@ void export_func(char **arguments)
         env_pos++;
         return;
     }
-    int i = 0;
     while(envirement[i])
     {
         if(envirement[i]->left->token->content)
@@ -945,6 +945,7 @@ Value *evaluate(Node *node, int input, int output)
                 if(func)
                 {
                     // if inside_pipe fork
+                    // eummm maybe it won't work in < infile unser PATH (just test it !!)
                     if(inside_pipe)
                     {
                         ft_printf(out, "built in function, with forking\n");

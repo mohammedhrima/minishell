@@ -48,7 +48,6 @@ int pid_pos;
 //multiple pipes
 int pipes[100];
 int pipe_pos;
-int inside_pipe;
 
 // types
 enum Type
@@ -346,15 +345,14 @@ char *ft_readline(int fd)
         int n = read(fd, c, sizeof(char));
         if (n <= 0)
             break;
+        if (c[0] == '\n' || c[0] == '\0')
+            break;
         if(res == NULL)
             res = ft_calloc(ft_strlen(res) + 2, sizeof(char));
         else
             res = ft_realloc(res, ft_strlen(res), (ft_strlen(res) + 3) * sizeof(char));
         res[ft_strlen(res)] = c[0];
-        if (c[0] == '\n' || c[0] == '\0')
-            break;
     }
-    // res[ft_strlen(res)] = '\0';
     return res;
 }
 
@@ -581,13 +579,30 @@ bool check(Type type, Type array[], int len)
 }
 
 Node *expr();        // expression
+Node *assign();      // assignement
 Node *pipe_node();   // |
 Node *prime();       // file, command, argument, built in commands: echo, cd, pwd, export, unset, env, exit
 
 Node *expr()
 {
     ft_printf(out, "call expr\n");
-    return pipe_node();
+    return assign();
+}
+
+// =
+Node *assign()
+{
+    ft_printf(out, "call assign\n");
+    Node *left = pipe_node();
+    while (tokens[exe_pos]->type == assign_)
+    {
+        Node *node = new_node(tokens[exe_pos]);
+        skip(assign_);
+        node->left = left;
+        node->right = pipe_node();
+        left = node;
+    }
+    return left;
 }
 
 Node *pipe_node()
@@ -662,24 +677,7 @@ void cd_func(char **arguments)
 {
     /// evaluate them after  , arguemnts must be an array of tokens in stead of char*
     // arguments might be expandables
-    if(arguments[0])
-        chdir(arguments[0]);
-    else
-    {
-        int i = 0;
-        char *location = "/";
-        while (envirement && envirement[i])
-        {
-            if(envirement[i]->left->token->content && ft_strcmp(envirement[i]->left->token->content, "HOME") == 0)
-            {
-                location = envirement[i]->right->token->content;
-                // ft_printf(out, "found in cd: %s\n", location);
-                break;
-            }
-            i++;
-        }
-        chdir(location);
-    }
+    chdir(arguments[0]);
 }
 void pwd_func(char **arguments)
 {
@@ -687,43 +685,17 @@ void pwd_func(char **arguments)
 }
 void export_func(char **arguments)
 {
-    if(arguments[0])
-    {
-        char **array = split(arguments[0], "=");
-        envirement[env_pos] = new_node(new_token(assign_, 0, 0));
-        envirement[env_pos]->left = new_node(new_token(identifier_, 0, 0));
-        envirement[env_pos]->right = new_node(new_token(identifier_, 0, 0));
-        envirement[env_pos]->left->token->content = array[0];
-        envirement[env_pos]->right->token->content = array[1];
-        ft_printf(out, "+ new node with type: %t \n", envirement[env_pos]->token->type);
-        ft_printf(out, "           has  left: %k\n", envirement[env_pos]->left->token);
-        ft_printf(out, "           has right: %k\n\n", envirement[env_pos]->right->token);
-        env_pos++;
-        return;
-    }
     int i = 0;
     while(envirement[i])
     {
-        if(envirement[i]->left->token->content)
-            printf("declare -x %s=\"%s\"\n", envirement[i]->left->token->content, envirement[i]->right->token->content);
+        printf("declare -x %s=\"%s\"\n", envirement[i]->left->token->content, envirement[i]->right->token->content);
         i++;
     }
 }
 void unset_func(char **argument)
 {
-    ft_printf(out, "in unset search for '%s'\n", argument[0]);
     // to be handled after
-    int i = 0;
-    while (envirement && envirement[i])
-    {
-        if(envirement[i]->left->token->content && ft_strcmp(envirement[i]->left->token->content, argument[0]) == 0)
-        {
-            ft_printf(out, "found in unset\n");
-            envirement[i]->left->token->content = NULL;
-            break;
-        }
-        i++;
-    }
+    return;
 }
 void env_func(char **arguments)
 {
@@ -731,14 +703,12 @@ void env_func(char **arguments)
     while(envirement[i])
     {
         // print only those who have right token
-        if(envirement[i]->left->token->content)
-            printf("%s=%s\n", envirement[i]->left->token->content, envirement[i]->right->token->content);
+        printf("%s=%s\n", envirement[i]->left->token->content, envirement[i]->right->token->content);
         i++;
     }
 }
-void exit_func(char **arguments)
+void exit_func(Node *node)
 {
-    // free everything
     exit(0); // verify exit code after
 }
 
@@ -858,11 +828,15 @@ Value *evaluate(Node *node, int input, int output)
         case heredoc_:
         {
             int len = 0;
-            // char **arguments = calloc(len + 2, sizeof(char*));
-            char **arguments = NULL;
+            char **arguments = calloc(len + 2, sizeof(char*));
             int in_tmp = -1;
             int out_tmp = -1;
+            // arguments[len] = expand(node->token);
+            // ft_printf(out, "command %s:\n", arguments[len]);
+            // len++;
 
+            // if(node->token->token_len)
+            //     ft_printf(out, "      has arguments:");
             int i = 0;
             int pos = node->token->token_start;
             while(i < node->token->token_len)
@@ -874,7 +848,6 @@ Value *evaluate(Node *node, int input, int output)
                     arguments[len] = expand(tokens[pos]);
                     ft_printf(out,"%s\n", arguments[len]);
                     len++;
-                    arguments[len] = NULL;
                 }
                 // use expand here too
                 else if 
@@ -902,115 +875,39 @@ Value *evaluate(Node *node, int input, int output)
                         close(out_tmp);
                         out_tmp = output;
                     }
-                    if(type == append_)
-                    {
-                        output = open(filename, O_APPEND, 0644);
-                        close(out_tmp);
-                        out_tmp = output;
-                    }
-                    if(type == heredoc_)
-                    {
-                        ft_printf(out, "heredoc\n");
-                        char *delimiter = filename;
-                        filename = ft_calloc(ft_strlen("/tmp/heredoc") + 1,sizeof(char));
-                        ft_strcpy(filename, "/tmp/heredoc");
-                        // ft_printf(out, "full path is '%s' \n", filename);
-                        input =  open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                        close(in_tmp);
-                        in_tmp = input;
-                        // ft_printf(out, "delimiter is '%s'\n", delimiter);
-                        char *res = NULL;
-                        while(res == NULL || ft_strncmp(res, delimiter, ft_strlen(res) - 1))
-                        {
-                            if(res)
-                                write(input, res, ft_strlen(res));
-                            ft_putstr(out,"heredoc $> ");
-                            res = ft_readline(in);
-                            // ft_printf(out, "receive '%s'\n", res);
-                        }
-                        close(input);
-                        input =  open(filename, O_RDONLY);
-                    }
-                    // set it as input
-                    // dir chi tekhwar hna
+
                 }
                 // ft_printf(out,"%s ", expand(tokens[pos]));
                 pos++;
                 i++;
             }
-            if(arguments && arguments[0])
-            {
-                // built in function
-                void (*func)(char**) = built_in(arguments[0]);
-                if(func)
+            char *full_command = get_command(arguments[0]);
+            ft_printf(out, "full command is %s\n", full_command);
+            int pid = fork();
+            if (!pid)
+            {  
+                int n = 0;
+                while(n < pipe_pos)
                 {
-                    // if inside_pipe fork
-                    if(inside_pipe)
-                    {
-                        ft_printf(out, "built in function, with forking\n");
-                        int pid = fork();
-                        if (!pid)
-                        {  
-                            int n = 0;
-                            while(n < pipe_pos)
-                            {
-                                if(pipes[n] != input && pipes[n] != output)
-                                    close(pipes[n]);
-                                n++;
-                            }
-                            if(input != in)
-                            {
-                                dup2(input, in);
-                                close(input);
-                            }
-                            if(output != out)
-                            {
-                                dup2(output, out);
-                                close(output);
-                            }
-                            func(&arguments[1]);
-                        }
-                        else
-                            pids[pid_pos++] = pid;
-                    }
-                    else
-                    {
-                        ft_printf(out, "built in function, without forking\n");
-                        func(&arguments[1]);
-                    }
+                    if(pipes[n] != input && pipes[n] != output)
+                        close(pipes[n]);
+                    n++;
                 }
-                // executable
-                else
+                if(input != in)
                 {
-                    char *full_command = get_command(arguments[0]);
-                    ft_printf(out, "full command is %s has input: %d, output: %d\n", full_command, input, output);
-                    int pid = fork();
-                    if (!pid)
-                    {  
-                        int n = 0;
-                        while(n < pipe_pos)
-                        {
-                            if(pipes[n] != input && pipes[n] != output)
-                                close(pipes[n]);
-                            n++;
-                        }
-                        if(input != in)
-                        {
-                            dup2(input, in);
-                            close(input);
-                        }
-                        if(output != out)
-                        {
-                            dup2(output, out);
-                            close(output);
-                        }
-                        if(execve(full_command, arguments, global_env) < 0)
-                            ft_printf(err, "Execve failed\n");
-                    }
-                    else
-                        pids[pid_pos++] = pid;
+                    dup2(input, in);
+                    close(input);
                 }
+                if(output != out)
+                {
+                    dup2(output, out);
+                    close(output);
+                }
+                if(execve(full_command, arguments, global_env) < 0)
+                    ft_printf(err, "Execve failed\n");
             }
+            else
+                pids[pid_pos++] = pid;
 
             close(in_tmp);
             close(out_tmp);
@@ -1030,13 +927,15 @@ Value *evaluate(Node *node, int input, int output)
             pipes[pipe_pos++] = fd[0];
             pipes[pipe_pos++] = fd[1];
 
-            inside_pipe++;
             evaluate(node->left, input, fd[1]);            
             evaluate(node->right, fd[0], output);
-            inside_pipe--;
 
             close(pipes[--pipe_pos]);
             close(pipes[--pipe_pos]);
+
+            // else
+                // evaluate(node->left, next[0], curr[1]);
+
 
             break;
         }
@@ -1065,12 +964,22 @@ int main(int argc, char **argv, char **envp)
     ft_memset(tokens, 0, 1000*sizeof(Token *));
     ft_printf(out, "\n");
 
+    // create pipes
+    // if(pipe(curr) < 0)
+    // {
+    //     printf("Error opening pipe 1\n");
+    //     exit(0);
+    // }
+    // if(pipe(next) < 0)
+    // {
+    //     printf("Error opening pipe 2\n");
+    //     exit(0);
+    // }
 
     while(1)
     {
-        ft_putstr(out, "minishell $> ");
+        ft_putstr(out, "minishell> ");
         text = ft_readline(out);
-        text[ft_strlen(text) - 1] = 0; // to eliminate \n
         tk_pos = 0;
         build_tokens();
 #if 1
@@ -1080,9 +989,14 @@ int main(int argc, char **argv, char **envp)
         // evaluate
         tk_pos++;
         
-        evaluate(expr(), in, out);
+        // while(tokens[exe_pos]->type != end_)
+        // {
+            // ft_printf(out, "Call evaluate\n");
+            evaluate(expr(), in, out);
+        // }
         while(pid_pos >= 0)
         {
+            // ft_printf(out, "=> wait \n");
             waitpid(pids[pid_pos], NULL, 0);
             pid_pos--;
         }

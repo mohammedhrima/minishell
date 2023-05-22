@@ -25,9 +25,9 @@ unset
 env (command)
 exit
 
-
 bonus:
     && || *
 
 verify norm before pushing
-verify calloc,realloc (remove them from code)
+verify calloc, realloc (remove them from code)
+check all opens, read if they fail

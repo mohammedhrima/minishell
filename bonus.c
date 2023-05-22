@@ -53,12 +53,13 @@ int inside_pipe;
 // types
 enum Type
 {
-    skip_, assign_,
-    // $                   '' ""   
-    // dollar_, 
-    identifier_,
+    skip_, 
+    // =                      (        )
+    assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |
     redir_input, redir_output, heredoc_, append_, pipe_,
+    // and or
+    and_, or_,
     // built in
     env_, echo_, cd_, pwd_, export_, unset_, exit_,
     end_
@@ -68,8 +69,8 @@ struct {
     char *value;
     Type type;
 } symbol_lexic[] = {
-    {"<<", heredoc_}, {">>", append_}, {"<", redir_input},
-    {">", redir_output}, {"|", pipe_}, {0 , 0}
+    {"<<", heredoc_}, {">>", append_}, {"<", redir_input}, {">", redir_output},
+    {"&&", and_}, {"||", or_}, {"(", lparent_}, {")", rparent_}, {"|", pipe_}, {0 , 0}
 };
 
 struct {
@@ -590,6 +591,48 @@ Node *expr()
     return pipe_node();
 }
 
+Node *expr();        // expression
+Node *or();          // ||
+Node *and();         // &&
+Node *pipe_node();   // |
+Node *prime();       // file, command, argument, built in commands: echo, cd, pwd, export, unset, env, exit
+
+Node *expr()
+{
+    ft_printf(out, "call expr\n");
+    return or();
+}
+
+Node *or()
+{
+    ft_printf(out, "call or\n");
+    Node *left = and();
+    while(tokens[exe_pos]->type == or_)
+    {
+        Node *node = new_node(tokens[exe_pos]);
+        skip(or_);
+        node->left = left;
+        node->right = and();
+        left = node;
+    }
+    return left;
+}
+
+Node *and()
+{
+    ft_printf(out, "call and\n");
+    Node *left = pipe_node();
+    while(tokens[exe_pos]->type == and_)
+    {
+        Node *node = new_node(tokens[exe_pos]);
+        skip(and_);
+        node->left = left;
+        node->right = pipe_node();
+        left = node;
+    }
+    return left;
+}
+
 Node *pipe_node()
 {
     ft_printf(out, "call pipe\n");
@@ -625,6 +668,13 @@ Node *prime()
             node->token->token_len++;
             skip(tokens[exe_pos]->type);
         }
+        return node;
+    }
+    if(tokens[exe_pos]->type == lparent_)
+    {
+        skip(tokens[exe_pos]->type);
+        Node *node = expr();
+        skip(rparent_);
         return node;
     }
     ft_printf(err, "Error in prime, tokens[%d] has type %t\n", exe_pos ,tokens[exe_pos]->type);
@@ -1019,6 +1069,27 @@ Value *evaluate(Node *node, int input, int output)
             return node->token;
             // break;
         }
+#if 0 // to be checked after
+        case and_:
+        case or_:
+        {
+            ft_printf(out, "open pipe\n");
+            evaluate(node->left, input, output);
+            int status = 0;
+            int j = 0;
+
+            while(j < pid_pos)
+            {
+                waitpid(pids[j], &status, 0);
+                j++;
+            }
+            if(node->token->type == and_ && status == 0)
+                evaluate(node->right, input, output);
+            if(node->token->type == or_ && status != 0)
+                evaluate(node->right, input, output);
+            break;
+        }
+#endif
         case pipe_:
         {
             ft_printf(out, "open pipe\n");
@@ -1031,7 +1102,9 @@ Value *evaluate(Node *node, int input, int output)
             pipes[pipe_pos++] = fd[1];
 
             inside_pipe++;
-            evaluate(node->left, input, fd[1]);            
+            evaluate(node->left, input, fd[1]);
+
+
             evaluate(node->right, fd[0], output);
             inside_pipe--;
 
