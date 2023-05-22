@@ -1,5 +1,5 @@
 + tokenize input
-+ define priority
++ build nodes
 + execute
 
 + exeucution:
