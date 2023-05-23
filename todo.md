@@ -1,33 +1,18 @@
-+ tokenize input
-+ build nodes
-+ execute
-
 + exeucution:
     verify fork shit ...
 
-< redirect input
-> redirect output
+      <             >              <<        >>
+redirect input, redirect output, heredoc, append to file, export
 
-<< heredoc
->> append to file, or create it ifdoesn't exists
-
-| pipe
-
-export -> variable declaration
-
-$ ()
-
-echo
-cd
-pwd
-export
-unset
-env (command)
-exit
+echo, cd, pwd, export, unset, env (command), exit
 
 bonus:
-    && || *
+    && || 
+    * 
 
-verify norm before pushing
-verify calloc, realloc (remove them from code)
-check all opens, read if they fail
++ give avaluate only file name and open it befoer execve then retur nth error shit
++ verify norm before pushing
++ verify calloc, realloc (remove them from code)
++ check all opens, read if they fail
++ to solve leaks: create a global array that hold all allocated values
++ set all pointers to NULL at beginning

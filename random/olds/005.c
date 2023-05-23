@@ -4,11 +4,20 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 // macros
 #define in STDIN_FILENO
 #define out STDOUT_FILENO
 #define err STDERR_FILENO
+
+// exit codes
+#define SUCESS 0
+#define NO_SUCH_FILE_OR_DIR 2
+#define INPUT_OUTPUT_ERROR 5
+#define BAD_FILE_DESCRIPTOR 9
+#define PERMISSION_DENIED 13
 
 // stupid implicent declaration error again
 void ft_printf(int fd, char *fmt, ...);
@@ -22,25 +31,30 @@ typedef struct Token Token;
 typedef struct Token Value;
 typedef struct Node Node;
 
-// Globals
+// alocated list
+uintptr_t *addresses;
+int address_index;
+int address_len = 100;
+
 // text
 char *text;
 int txt_pos;
+
 // tokens
 Token **tokens; // use realloc
 int tk_pos;
 int exe_pos;
+
 // env
 Node **envirement;
 int env_pos;
+
 // PATH
 char **PATH;
-// file descriptors;
-int curr[2];
-int next[2];
-int fd[2];
+
 // global env
 char **global_env;
+
 // process ids
 int pids[200];
 int pid_pos;
@@ -49,6 +63,9 @@ int pid_pos;
 int pipes[100];
 int pipe_pos;
 int inside_pipe;
+
+// exit status
+int status;
 
 // types
 enum Type
@@ -62,6 +79,9 @@ enum Type
     and_, or_,
     // built in
     env_, echo_, cd_, pwd_, export_, unset_, exit_,
+    // processes id
+    pid_,
+    // end
     end_
 };
 
@@ -87,10 +107,13 @@ char *type_to_string(Type type)
         char *value;
         Type type;
     } lexic[] = {
-        {"ASSIGN", assign_}, 
-        {"IDENTIFIER", identifier_}, {"INPUT REDIR", redir_input}, {"OUTPUT REDIR", redir_output},
-        {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, {"ENV", env_}, {"ECHO", echo_}, 
-        {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, {"EXIT", exit_}, {"END", end_}, {0, 0}
+        {"ASSIGN", assign_},  {"IDENTIFIER", identifier_},
+        {"INPUT REDIR", redir_input}, {"OUTPUT REDIR", redir_output},  
+        {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, 
+        {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"AND", and_}, 
+        {"OR", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
+        {"EXIT", exit_}, {"END", end_}, 
+        {0, 0}
     };
     for(int i = 0; lexic[i].value; i++)
     {
@@ -104,11 +127,9 @@ char *type_to_string(Type type)
 struct Token
 {
     Type type;
-    char *content;
 
-    // Token *array_head;
+    char *content;
     int token_start;
-    // int joined_len;
     int token_len;
     pid_t process_id;
 };
@@ -143,9 +164,6 @@ struct Node
     Node *left;
     Node *right;
     Token *token;
-
-    // int token_start;
-    // int array_len;
 };
 
 Node *new_node(Token *token)
@@ -216,6 +234,16 @@ void    *ft_calloc(size_t count, size_t size)
 		pointer[i] = 0;
 		i++;
 	}
+    addresses[address_index] = (uintptr_t)new;
+    address_index++;
+    if(address_index + 10 > address_len)
+    {
+        void *temporary = malloc(address_len * 2 * sizeof(uintptr_t));
+        ft_memcpy(temporary, addresses, address_index * sizeof(uintptr_t));
+        address_len *= 2;
+        free(addresses);
+        addresses = temporary;
+    }
 	return (new);
 }
 void *ft_realloc(void *pointer, size_t old_size ,size_t new_size)
@@ -225,10 +253,17 @@ void *ft_realloc(void *pointer, size_t old_size ,size_t new_size)
 
     void* new = ft_calloc(1, new_size);
     ft_memcpy(new, pointer, old_size);
-    free(pointer);
     return new;
 }
-
+void ft_exit(int code)
+{
+    while(address_index >= 0)
+    {
+        free((void*)(addresses[address_index]));
+        address_index--;
+    }
+    exit(code);
+}
 // string methods
 int     ft_strlen(char *string){ int i = 0; while (string && string[i]) i++; return i;}
 void    ft_strncpy(char *destination, char *source, int len)
@@ -336,6 +371,22 @@ char *charjoin(char *string, char c)
     return res;
 }
 
+// ft_itoa
+char *ft_itoa(int num)
+{
+    if(num < 10)
+    {
+        char *res = ft_calloc(2, sizeof(char));
+        res[0] = num + '0';
+        return res;
+    }
+    char *left = ft_itoa(num / 10);
+    left = ft_realloc(left, ft_strlen(left), ft_strlen(left) + 2);
+    left[ft_strlen(left)] = num % 10 + '0';;
+    return left;
+}
+
+#if 0
 // readline
 char *ft_readline(int fd)
 {
@@ -358,6 +409,7 @@ char *ft_readline(int fd)
     // res[ft_strlen(res)] = '\0';
     return res;
 }
+#endif
 
 // printf
 void ft_putchar(int fd, int c){ write(fd, &c, sizeof(char));}
@@ -420,6 +472,8 @@ void ft_printf(int fd, char *fmt, ...)
                     case redir_input:
                     case redir_output:
                     case heredoc_:
+                    case and_:
+                    case or_:
                         print_space(fd, space - ft_strlen(variable->content));
                         ft_putstr(fd, variable->content);
                         break;
@@ -427,7 +481,7 @@ void ft_printf(int fd, char *fmt, ...)
                         ft_putstr(err, "Unkown given token type: ");
                         ft_putnbr(err, variable->type);
                         ft_putstr(err, "\n");
-                        exit(0);
+                        ft_exit(0);
                         break;
                     }
                 }
@@ -462,7 +516,7 @@ void ft_printf(int fd, char *fmt, ...)
     }
     va_end(ap);
     if (fd == err)
-        exit(1);
+        ft_exit(1);
 }
 
 // Tokenize
@@ -486,9 +540,9 @@ void build_env_tokens(char **envp)
         envirement[env_pos]->right = new_node(new_token(identifier_, 0, 0));
         envirement[env_pos]->left->token->content = array[0];
         envirement[env_pos]->right->token->content = array[1];
-        ft_printf(out, "+ new node with type: %t \n", envirement[env_pos]->token->type);
-        ft_printf(out, "           has  left: %k\n", envirement[env_pos]->left->token);
-        ft_printf(out, "           has right: %k\n\n", envirement[env_pos]->right->token);
+        // ft_printf(out, "+ new node with type: %t \n", envirement[env_pos]->token->type);
+        // ft_printf(out, "           has  left: %k\n", envirement[env_pos]->left->token);
+        // ft_printf(out, "           has right: %k\n\n", envirement[env_pos]->right->token);
         env_pos++;
         i++;
     }
@@ -582,20 +636,10 @@ bool check(Type type, Type array[], int len)
 }
 
 Node *expr();        // expression
-Node *pipe_node();   // |
-Node *prime();       // file, command, argument, built in commands: echo, cd, pwd, export, unset, env, exit
-
-Node *expr()
-{
-    ft_printf(out, "call expr\n");
-    return pipe_node();
-}
-
-Node *expr();        // expression
 Node *or();          // ||
 Node *and();         // &&
 Node *pipe_node();   // |
-Node *prime();       // file, command, argument, built in commands: echo, cd, pwd, export, unset, env, exit
+Node *prime();       // files, command, argument, (), built in commands: echo, cd, pwd, export, unset, env, exit
 
 Node *expr()
 {
@@ -788,8 +832,7 @@ void env_func(char **arguments)
 }
 void exit_func(char **arguments)
 {
-    // free everything
-    exit(0); // verify exit code after
+    ft_exit(0); // verify exit code after
 }
 
 void* built_in(char *cmd)
@@ -815,6 +858,8 @@ char *get_var(char *name)
 {
     int i = 0;
     // ft_printf(out, "Enter get_var, search for '%s'\n", name);
+    if(ft_strcmp(name, "?") == 0)
+        return ft_itoa(status);
     while(envirement && envirement[i])
     {
         if(ft_strcmp(envirement[i]->left->token->content, name) == 0)
@@ -870,7 +915,6 @@ char *expand(Token *token)
                 char *var = ft_calloc(j - i + 1, sizeof(char));
                 ft_strncpy(var, token->content + i, j - i);
                 char *to_add = get_var(var);
-                free(var);
                 if(to_add)
                 {
                     res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + ft_strlen(to_add) + 1);
@@ -943,6 +987,12 @@ Value *evaluate(Node *node, int input, int output)
                     if(type == redir_input)
                     {
                         input = open(filename, O_RDONLY);
+                        if(input < 0)
+                        {
+                            ft_printf(out, "inpout: %d\n", input);
+                            ft_printf(out, "minishell: %s: No such file or directory\n", filename);
+                            ft_exit(1);
+                        }
                         close(in_tmp);
                         in_tmp = input;
                     }
@@ -974,8 +1024,8 @@ Value *evaluate(Node *node, int input, int output)
                         {
                             if(res)
                                 write(input, res, ft_strlen(res));
-                            ft_putstr(out,"heredoc $> ");
-                            res = ft_readline(in);
+                            // ft_putstr(out,"heredoc $> ");
+                            res = readline("heredoc $> ");
                             // ft_printf(out, "receive '%s'\n", res);
                         }
                         close(input);
@@ -1020,8 +1070,9 @@ Value *evaluate(Node *node, int input, int output)
                             }
                             func(&arguments[1]);
                         }
-                        else
-                            pids[pid_pos++] = pid;
+                        pids[pid_pos++] = pid;
+                        node->token->type = pid_;
+                        node->token->process_id = pid;
                     }
                     else
                     {
@@ -1057,8 +1108,9 @@ Value *evaluate(Node *node, int input, int output)
                         if(execve(full_command, arguments, global_env) < 0)
                             ft_printf(err, "Execve failed\n");
                     }
-                    else
-                        pids[pid_pos++] = pid;
+                    pids[pid_pos++] = pid;
+                    node->token->type = pid_;
+                    node->token->process_id = pid;
                 }
             }
 
@@ -1069,27 +1121,25 @@ Value *evaluate(Node *node, int input, int output)
             return node->token;
             // break;
         }
-#if 0 // to be checked after
         case and_:
         case or_:
         {
+#if 1 // to be checked after
             ft_printf(out, "open pipe\n");
-            evaluate(node->left, input, output);
-            int status = 0;
-            int j = 0;
+            Value *left = evaluate(node->left, input, output);
+            if(left->type != pid_)
+                ft_printf(err, "Expected pid in and/or\n");
 
-            while(j < pid_pos)
-            {
-                waitpid(pids[j], &status, 0);
-                j++;
-            }
+            status = 0;
+            waitpid(left->process_id, &status, 0);
             if(node->token->type == and_ && status == 0)
                 evaluate(node->right, input, output);
             if(node->token->type == or_ && status != 0)
                 evaluate(node->right, input, output);
+#endif
+            // to check after what to return
             break;
         }
-#endif
         case pipe_:
         {
             ft_printf(out, "open pipe\n");
@@ -1103,7 +1153,6 @@ Value *evaluate(Node *node, int input, int output)
 
             inside_pipe++;
             evaluate(node->left, input, fd[1]);
-
 
             evaluate(node->right, fd[0], output);
             inside_pipe--;
@@ -1122,8 +1171,10 @@ Value *evaluate(Node *node, int input, int output)
 int main(int argc, char **argv, char **envp)
 {
     global_env = envp;
+    addresses = malloc(address_len * sizeof(uintptr_t));
     tokens = ft_calloc(1000, sizeof(Token*));
     envirement = ft_calloc(1000, sizeof(Token*));
+
 
     for(int i = 0; envp && envp[i] ;i++)
     {
@@ -1141,9 +1192,11 @@ int main(int argc, char **argv, char **envp)
 
     while(1)
     {
-        ft_putstr(out, "minishell $> ");
-        text = ft_readline(out);
-        text[ft_strlen(text) - 1] = 0; // to eliminate \n
+        // ft_putstr(out, "minishell $> ");
+        text = readline("minishell $> ");
+        if (text)
+            add_history(text);
+        // text[ft_strlen(text) - 1] = 0; // to eliminate \n
         tk_pos = 0;
         build_tokens();
 #if 1
@@ -1165,5 +1218,7 @@ int main(int argc, char **argv, char **envp)
         pipe_pos = 0;
 #endif
         ft_memset(tokens, 0, 1000*sizeof(Token *));
+        text = NULL;
     }
+    ft_exit(0);
 }

@@ -4,63 +4,176 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 // macros
 #define in STDIN_FILENO
 #define out STDOUT_FILENO
 #define err STDERR_FILENO
 
+// exit codes
+#define SUCESS 0
+#define NO_SUCH_FILE_OR_DIR 1
+#define PERMISSION_DENIED 1
+#define BAD_FILE_DESCRIPTOR 9
+// #define PERMISSION_DENIED -200
+// #define 
+
 // stupid implicent declaration error again
-void ft_printf(int fd, char *fmt, ...);
-void ft_putchar(int fd, int c);
-void ft_putstr(int fd, char *str);
+void ft_printf(int file_descriptor, char *fmt, ...);
+void ft_putchar(int file_descriptor, int c);
+void ft_putstr(int file_descriptor, char *str);
 void *ft_calloc(size_t count, size_t size);
+void *ft_memcpy(void *destination, void *source, size_t len);
+void *ft_realloc(void *pointer, size_t old_size ,size_t new_size);
 
 // typdefs
 typedef enum Type Type;
 typedef struct Token Token;
 typedef struct Token Value;
 typedef struct Node Node;
+typedef struct file file;
 
-// Globals
+// alocated list
+uintptr_t *addresses;
+int address_len = 100;
+int address_pos;
+
+void new_address(uintptr_t new)
+{
+    addresses[address_pos] = new;
+    address_pos++;
+    if(address_pos + 10 > address_len)
+    {
+        address_len *= 2;
+        void *temporary = malloc(address_len * sizeof(uintptr_t));
+        ft_memcpy(temporary, addresses, address_pos * sizeof(uintptr_t));
+        free(addresses);
+        addresses = temporary;
+    }
+}
+
 // text
 char *text;
 int txt_pos;
+
 // tokens
 Token **tokens; // use realloc
-int tk_pos;
+int tokens_len = 100;
+int token_pos;
 int exe_pos;
+
 // env
 Node **envirement;
-int env_pos;
+int envirement_len = 100;
+int envirement_pos;
+
+Node* new_envirement(Node* new)
+{
+    envirement[envirement_pos] = new;
+    envirement_pos++;
+    if(envirement_pos + 10 > envirement_len)
+    {
+        envirement_len *= 2;
+        void *temporary = ft_calloc(envirement_len, sizeof(Node*));
+        ft_memcpy(temporary, envirement, envirement_pos * sizeof(Node*));
+        envirement = temporary;
+    }
+    return new;
+}
+
 // PATH
-char **PATH;
-// file descriptors;
-int curr[2];
-int next[2];
-int fd[2];
+char **PATH = NULL;
+
 // global env
 char **global_env;
+
 // process ids
-int pids[200];
+int *pids;
+int pid_len = 100;
 int pid_pos;
 
-//multiple pipes
-int pipes[100];
+int new_pid(int new)
+{
+    pids[pid_pos] = new;
+    pid_pos++;
+    if(pid_pos + 10 > pid_len)
+    {
+        pid_len *= 2;
+        void *temporary = ft_calloc(pid_len,  sizeof(int));
+        ft_memcpy(temporary, pids, pid_pos * sizeof(int));
+        pids = temporary;
+    }
+    return new;
+}
+
+// multiple pipes
+int *pipes;
+int pipe_len = 100;
 int pipe_pos;
 int inside_pipe;
+
+int new_pipe(int new)
+{
+    pipes[pipe_pos] = new;
+    pipe_pos++;
+    if(pipe_pos + 10 > pipe_len)
+    {
+        pipe_len *= 2;
+        void *temporary = ft_calloc(pipe_len, sizeof(int));
+        ft_memcpy(temporary, pipes, pipe_pos * sizeof(int));
+        pipes = temporary;
+    }
+    return new;
+}
+
+// exit status
+int status = 0;
+
+// file
+struct file {
+    char *name;
+    int file_descriptor;
+};
+
+file **files;
+int file_len = 100;
+int file_pos;
+
+file *new_file(char* name, int file_descriptor)
+{
+    file *new = ft_calloc(1,sizeof(file));
+    new->name = name;
+    new->file_descriptor = file_descriptor;
+
+    files[file_pos] = new;
+    file_pos++;
+    if(file_pos + 10 > file_len)
+    {
+        file_len *= 2;
+        void *temporary = ft_calloc(file_len, sizeof(file*));
+        ft_memcpy(temporary, files, file_pos * sizeof(file*));
+        files = temporary;
+    }
+    return new;
+}
 
 // types
 enum Type
 {
-    skip_, assign_,
-    // $                   '' ""   
-    // dollar_, 
-    identifier_,
+    skip_, 
+    // =                      (        )
+    assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |
     redir_input, redir_output, heredoc_, append_, pipe_,
+    // and or
+    and_, or_,
     // built in
     env_, echo_, cd_, pwd_, export_, unset_, exit_,
+    // processes id
+    pid_,
+    // end
     end_
 };
 
@@ -68,8 +181,8 @@ struct {
     char *value;
     Type type;
 } symbol_lexic[] = {
-    {"<<", heredoc_}, {">>", append_}, {"<", redir_input},
-    {">", redir_output}, {"|", pipe_}, {0 , 0}
+    {"<<", heredoc_}, {">>", append_}, {"<", redir_input}, {">", redir_output},
+    {"&&", and_}, {"||", or_}, {"(", lparent_}, {")", rparent_}, {"|", pipe_}, {0 , 0}
 };
 
 struct {
@@ -86,10 +199,13 @@ char *type_to_string(Type type)
         char *value;
         Type type;
     } lexic[] = {
-        {"ASSIGN", assign_}, 
-        {"IDENTIFIER", identifier_}, {"INPUT REDIR", redir_input}, {"OUTPUT REDIR", redir_output},
-        {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, {"ENV", env_}, {"ECHO", echo_}, 
-        {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, {"EXIT", exit_}, {"END", end_}, {0, 0}
+        {"ASSIGN", assign_},  {"IDENTIFIER", identifier_},
+        {"INPUT REDIR", redir_input}, {"OUTPUT REDIR", redir_output},  
+        {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, 
+        {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"AND", and_}, 
+        {"OR", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
+        {"EXIT", exit_}, {"END", end_}, 
+        {0, 0}
     };
     for(int i = 0; lexic[i].value; i++)
     {
@@ -103,11 +219,9 @@ char *type_to_string(Type type)
 struct Token
 {
     Type type;
-    char *content;
 
-    // Token *array_head;
+    char *content;
     int token_start;
-    // int joined_len;
     int token_len;
     pid_t process_id;
 };
@@ -131,8 +245,13 @@ Token *new_token(Type type, int start, int end)
         ft_printf(out, "has value: '%k'", new);
     ft_printf(out, "\n");
 
-    tokens[tk_pos] = new;
-    tk_pos++;
+    tokens[token_pos] = new;
+    token_pos++;
+    if(token_pos + 10 > tokens_len)
+    {
+        tokens = ft_realloc(tokens, token_pos, tokens_len * 2 * sizeof(Token*));
+        tokens_len = tokens_len * 2;
+    }
     return new;
 };
 
@@ -142,9 +261,6 @@ struct Node
     Node *left;
     Node *right;
     Token *token;
-
-    // int token_start;
-    // int array_len;
 };
 
 Node *new_node(Token *token)
@@ -215,6 +331,17 @@ void    *ft_calloc(size_t count, size_t size)
 		pointer[i] = 0;
 		i++;
 	}
+    new_address((uintptr_t)new);
+    // addresses[address_pos] = (uintptr_t)new;
+    // address_pos++;
+    // if(address_pos + 10 > address_len)
+    // {
+    //     void *temporary = malloc(address_len * 2 * sizeof(uintptr_t));
+    //     ft_memcpy(temporary, addresses, address_pos * sizeof(uintptr_t));
+    //     address_len *= 2;
+    //     free(addresses);
+    //     addresses = temporary;
+    // }
 	return (new);
 }
 void *ft_realloc(void *pointer, size_t old_size ,size_t new_size)
@@ -224,10 +351,18 @@ void *ft_realloc(void *pointer, size_t old_size ,size_t new_size)
 
     void* new = ft_calloc(1, new_size);
     ft_memcpy(new, pointer, old_size);
-    free(pointer);
     return new;
 }
-
+void ft_exit(int code)
+{
+    address_pos--;
+    while(address_pos >= 0)
+    {
+        free((void*)(addresses[address_pos]));
+        address_pos--;
+    }
+    exit(code);
+}
 // string methods
 int     ft_strlen(char *string){ int i = 0; while (string && string[i]) i++; return i;}
 void    ft_strncpy(char *destination, char *source, int len)
@@ -335,15 +470,51 @@ char *charjoin(char *string, char c)
     return res;
 }
 
+char	*ft_strdup(char *string)
+{
+	char	*pointer;
+	int		i;
+
+	if (!string)
+		return (NULL);
+	pointer = ft_calloc((ft_strlen(string) + 1), sizeof(char));
+	if (!pointer)
+		return (NULL);
+	i = 0;
+	while (string && string[i])
+	{
+		pointer[i] = string[i];
+		i++;
+	}
+	pointer[i] = '\0';
+	return (pointer);
+}
+
+// ft_itoa
+char *ft_itoa(int num)
+{
+    if(num < 10)
+    {
+        char *res = ft_calloc(2, sizeof(char));
+        res[0] = num + '0';
+        return res;
+    }
+    char *left = ft_itoa(num / 10);
+    left = ft_realloc(left, ft_strlen(left), ft_strlen(left) + 2);
+    left[ft_strlen(left)] = num % 10 + '0';;
+    return left;
+}
+
+#if 0
 // readline
-char *ft_readline(int fd)
+char *ft_readline(int file_descriptor)
 {
     char *res = NULL;
     char *c = ft_calloc(2, sizeof(char));
 
     while (1)
     {
-        int n = read(fd, c, sizeof(char));
+        int n = read(file_descriptor, c, sizeof(char));
         if (n <= 0)
             break;
         if(res == NULL)
@@ -357,34 +528,35 @@ char *ft_readline(int fd)
     // res[ft_strlen(res)] = '\0';
     return res;
 }
+#endif
 
 // printf
-void ft_putchar(int fd, int c){ write(fd, &c, sizeof(char));}
-void ft_putstr(int fd, char *str){ write(fd, str, ft_strlen(str));}
-void ft_putnbr(int fd, long num)
+void ft_putchar(int file_descriptor, int c){ write(file_descriptor, &c, sizeof(char));}
+void ft_putstr(int file_descriptor, char *str){ write(file_descriptor, str, ft_strlen(str));}
+void ft_putnbr(int file_descriptor, long num)
 {
     if (num < 0)
     {
-        ft_putchar(fd, '-');
+        ft_putchar(file_descriptor, '-');
         num = -num;
     }
-    if (num < 10) ft_putchar(fd, num + '0');
+    if (num < 10) ft_putchar(file_descriptor, num + '0');
     else
     {
-        ft_putnbr(fd, num / 10);
-        ft_putnbr(fd, num % 10);
+        ft_putnbr(file_descriptor, num / 10);
+        ft_putnbr(file_descriptor, num % 10);
     }
 }
-void print_space(int fd, int len)
+void print_space(int file_descriptor, int len)
 {
     int i = 0;
     while(i < len)
     {
-        ft_putchar(fd, ' ');
+        ft_putchar(file_descriptor, ' ');
         i++;
     }
 }
-void ft_printf(int fd, char *fmt, ...)
+void ft_printf(int file_descriptor, char *fmt, ...)
 {
     va_list ap;
 
@@ -419,49 +591,51 @@ void ft_printf(int fd, char *fmt, ...)
                     case redir_input:
                     case redir_output:
                     case heredoc_:
-                        print_space(fd, space - ft_strlen(variable->content));
-                        ft_putstr(fd, variable->content);
+                    case and_:
+                    case or_:
+                        print_space(file_descriptor, space - ft_strlen(variable->content));
+                        ft_putstr(file_descriptor, variable->content);
                         break;
                     default:
                         ft_putstr(err, "Unkown given token type: ");
                         ft_putnbr(err, variable->type);
                         ft_putstr(err, "\n");
-                        exit(0);
+                        ft_exit(0);
                         break;
                     }
                 }
                 else
-                    ft_putstr(fd, "(null token)");
+                    ft_putstr(file_descriptor, "(null token)");
             }
             if (fmt[i] == 't')
             {
                 char* type = type_to_string(va_arg(ap, Type));
-                print_space(fd, space - ft_strlen(type));
-                ft_putstr(fd, type);
+                print_space(file_descriptor, space - ft_strlen(type));
+                ft_putstr(file_descriptor, type);
             }
             if (fmt[i] == 'd')
             {
                 int num = va_arg(ap, int);
-                ft_putnbr(fd, (long)num);
+                ft_putnbr(file_descriptor, (long)num);
             }
             if (fmt[i] == 'c')
             {
                 int c = va_arg(ap, int);
-                ft_putchar(fd, c);
+                ft_putchar(file_descriptor, c);
             }
             if (fmt[i] == 's')
             {
                 char *str = va_arg(ap, char *);
-                ft_putstr(fd, str);
+                ft_putstr(file_descriptor, str);
             }
         }
         else
-            ft_putchar(fd, fmt[i]);
+            ft_putchar(file_descriptor, fmt[i]);
         i++;
     }
     va_end(ap);
-    if (fd == err)
-        exit(1);
+    if (file_descriptor == err)
+        ft_exit(1);
 }
 
 // Tokenize
@@ -480,15 +654,14 @@ void build_env_tokens(char **envp)
     while(envp && envp[i])
     {
         char **array = split(envp[i], "=");
-        envirement[env_pos] = new_node(new_token(assign_, 0, 0));
-        envirement[env_pos]->left = new_node(new_token(identifier_, 0, 0));
-        envirement[env_pos]->right = new_node(new_token(identifier_, 0, 0));
-        envirement[env_pos]->left->token->content = array[0];
-        envirement[env_pos]->right->token->content = array[1];
-        ft_printf(out, "+ new node with type: %t \n", envirement[env_pos]->token->type);
-        ft_printf(out, "           has  left: %k\n", envirement[env_pos]->left->token);
-        ft_printf(out, "           has right: %k\n\n", envirement[env_pos]->right->token);
-        env_pos++;
+        Node *curr_envirement = new_envirement(new_node(new_token(assign_, 0, 0)));
+        curr_envirement->left = new_node(new_token(identifier_, 0, 0));
+        curr_envirement->right = new_node(new_token(identifier_, 0, 0));
+        curr_envirement->left->token->content = array[0];
+        curr_envirement->right->token->content = array[1];
+        // ft_printf(out, "+ new node with type: %t \n", envirement[envirement_pos]->token->type);
+        // ft_printf(out, "           has  left: %k\n", envirement[envirement_pos]->left->token);
+        // ft_printf(out, "           has right: %k\n\n", envirement[envirement_pos]->right->token);
         i++;
     }
 }
@@ -581,13 +754,45 @@ bool check(Type type, Type array[], int len)
 }
 
 Node *expr();        // expression
+Node *or();          // ||
+Node *and();         // &&
 Node *pipe_node();   // |
-Node *prime();       // file, command, argument, built in commands: echo, cd, pwd, export, unset, env, exit
+Node *prime();       // files, command, argument, (), built in commands: echo, cd, pwd, export, unset, env, exit
 
 Node *expr()
 {
     ft_printf(out, "call expr\n");
-    return pipe_node();
+    return or();
+}
+
+Node *or()
+{
+    ft_printf(out, "call or\n");
+    Node *left = and();
+    while(tokens[exe_pos]->type == or_)
+    {
+        Node *node = new_node(tokens[exe_pos]);
+        skip(or_);
+        node->left = left;
+        node->right = and();
+        left = node;
+    }
+    return left;
+}
+
+Node *and()
+{
+    ft_printf(out, "call and\n");
+    Node *left = pipe_node();
+    while(tokens[exe_pos]->type == and_)
+    {
+        Node *node = new_node(tokens[exe_pos]);
+        skip(and_);
+        node->left = left;
+        node->right = pipe_node();
+        left = node;
+    }
+    return left;
 }
 
 Node *pipe_node()
@@ -627,6 +832,13 @@ Node *prime()
         }
         return node;
     }
+    if(tokens[exe_pos]->type == lparent_)
+    {
+        skip(tokens[exe_pos]->type);
+        Node *node = expr();
+        skip(rparent_);
+        return node;
+    }
     ft_printf(err, "Error in prime, tokens[%d] has type %t\n", exe_pos ,tokens[exe_pos]->type);
     return NULL;
 }
@@ -634,16 +846,21 @@ Node *prime()
 // Execution
 char *get_command(char *cmd)
 {
+    // ft_printf(out, "call get command to find %s\n", cmd);
+
     if(cmd == NULL || ft_strchr(cmd, '/'))
         return cmd;
     int i = 0;
     while(PATH && PATH[i])
     {
         char *res = strjoin(PATH[i], "/", cmd);
+        // ft_printf(out, "search for %s\n", cmd);
+        // exit(0);
         if (access(res, F_OK) == 0 && access(res, X_OK) == 0)
             return (res);
         i++;
     }
+    // ft_printf(err, "allo\n");
     return cmd;
 }
 // built in functions
@@ -683,22 +900,32 @@ void cd_func(char **arguments)
 }
 void pwd_func(char **arguments)
 {
-    ft_printf(out, "%s\n", getcwd(NULL, 0));
+    char *new = getcwd(NULL, 0);
+    // new_address((uintptr_t)new);
+    ft_printf(out, "%s\n", new);
+    free(new);
+
 }
 void export_func(char **arguments)
 {
     if(arguments[0])
     {
         char **array = split(arguments[0], "=");
-        envirement[env_pos] = new_node(new_token(assign_, 0, 0));
-        envirement[env_pos]->left = new_node(new_token(identifier_, 0, 0));
-        envirement[env_pos]->right = new_node(new_token(identifier_, 0, 0));
-        envirement[env_pos]->left->token->content = array[0];
-        envirement[env_pos]->right->token->content = array[1];
-        ft_printf(out, "+ new node with type: %t \n", envirement[env_pos]->token->type);
-        ft_printf(out, "           has  left: %k\n", envirement[env_pos]->left->token);
-        ft_printf(out, "           has right: %k\n\n", envirement[env_pos]->right->token);
-        env_pos++;
+        Node *curr_envirement = new_envirement(new_node(new_token(assign_, 0, 0)));
+        curr_envirement->left = new_node(new_token(identifier_, 0, 0));
+        curr_envirement->right = new_node(new_token(identifier_, 0, 0));
+        curr_envirement->left->token->content = array[0];
+        curr_envirement->right->token->content = array[1];
+
+        // envirement[envirement_pos] = new_node(new_token(assign_, 0, 0));
+        // envirement[envirement_pos]->left = new_node(new_token(identifier_, 0, 0));
+        // envirement[envirement_pos]->right = new_node(new_token(identifier_, 0, 0));
+        // envirement[envirement_pos]->left->token->content = array[0];
+        // envirement[envirement_pos]->right->token->content = array[1];
+        ft_printf(out, "+ new node with type: %t \n", curr_envirement->token->type);
+        ft_printf(out, "           has  left: %k\n", curr_envirement->left->token);
+        ft_printf(out, "           has right: %k\n\n", curr_envirement->right->token);
+
         return;
     }
     int i = 0;
@@ -738,8 +965,7 @@ void env_func(char **arguments)
 }
 void exit_func(char **arguments)
 {
-    // free everything
-    exit(0); // verify exit code after
+    ft_exit(0); // verify exit code after
 }
 
 void* built_in(char *cmd)
@@ -764,7 +990,9 @@ void* built_in(char *cmd)
 char *get_var(char *name)
 {
     int i = 0;
-    // ft_printf(out, "Enter get_var, search for '%s'\n", name);
+    ft_printf(out, "Enter get_var, search for '%s'\n", name);
+    if(ft_strcmp(name, "?") == 0)
+        return ft_itoa(status);
     while(envirement && envirement[i])
     {
         if(ft_strcmp(envirement[i]->left->token->content, name) == 0)
@@ -820,7 +1048,6 @@ char *expand(Token *token)
                 char *var = ft_calloc(j - i + 1, sizeof(char));
                 ft_strncpy(var, token->content + i, j - i);
                 char *to_add = get_var(var);
-                free(var);
                 if(to_add)
                 {
                     res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + ft_strlen(to_add) + 1);
@@ -846,9 +1073,28 @@ char *expand(Token *token)
     return res;
 }
 
-// evaluate
-Value *evaluate(Node *node, int input, int output)
+void duplicate(file* new, int old)
 {
+    if(new->file_descriptor < 0)
+    {
+        if(access(new->name, F_OK))
+        {
+            ft_printf(out, "%s: No such file or directory\n", new->name);
+            ft_exit(NO_SUCH_FILE_OR_DIR);
+        }
+        else
+        {
+            ft_printf(out, "%s: Permission denied\n", new->name);
+            ft_exit(PERMISSION_DENIED);
+        }
+    }
+    dup2(new->file_descriptor, old);
+}
+
+// evaluate
+Value *evaluate(Node *node, file *input, file *output)
+{
+    
     ft_printf(out, "Evaluate %k\n", node->token);
     switch(node->token->type)
     {
@@ -892,44 +1138,53 @@ Value *evaluate(Node *node, int input, int output)
                     ft_printf(out,"%s\n", filename);
                     if(type == redir_input)
                     {
-                        input = open(filename, O_RDONLY);
+                        input = new_file(filename,open(filename, O_RDONLY));
+                        if(input < 0)
+                        {
+                            // ft_printf(out, "input: %d\n", input);
+                            if(access(filename, F_OK)) // check existance
+                                ft_printf(out, "minishell: %s: No such file or directory\n", filename);
+                            else if(access(filename, R_OK)) // check if readable
+                                ft_printf(out, "minishell: %s: Permission denied\n", filename);
+                            ft_exit(1);
+                        }
                         close(in_tmp);
-                        in_tmp = input;
+                        in_tmp = input->file_descriptor;
                     }
                     if(type == redir_output)
                     {
-                        output = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0644);
+                        output = new_file(filename, open(filename, O_RDWR | O_CREAT | O_TRUNC, 0644));
                         close(out_tmp);
-                        out_tmp = output;
+                        out_tmp = output->file_descriptor;
                     }
                     if(type == append_)
                     {
-                        output = open(filename, O_APPEND, 0644);
+                        output = new_file(filename, open(filename, O_APPEND, 0644));
                         close(out_tmp);
-                        out_tmp = output;
+                        out_tmp = output->file_descriptor;
                     }
                     if(type == heredoc_)
                     {
                         ft_printf(out, "heredoc\n");
                         char *delimiter = filename;
-                        filename = ft_calloc(ft_strlen("/tmp/heredoc") + 1,sizeof(char));
-                        ft_strcpy(filename, "/tmp/heredoc");
+                        filename = ft_strdup("/tmp/heredoc");
+                        
                         // ft_printf(out, "full path is '%s' \n", filename);
-                        input =  open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                        input =  new_file(filename, open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644));
                         close(in_tmp);
-                        in_tmp = input;
+                        in_tmp = input->file_descriptor;
                         // ft_printf(out, "delimiter is '%s'\n", delimiter);
                         char *res = NULL;
-                        while(res == NULL || ft_strncmp(res, delimiter, ft_strlen(res) - 1))
+                        while(res == NULL || ft_strcmp(res, delimiter))
                         {
                             if(res)
-                                write(input, res, ft_strlen(res));
-                            ft_putstr(out,"heredoc $> ");
-                            res = ft_readline(in);
+                                write(input->file_descriptor, res, ft_strlen(res));
+                            // ft_putstr(out,"heredoc $> ");
+                            res = readline("heredoc $> ");
                             // ft_printf(out, "receive '%s'\n", res);
                         }
-                        close(input);
-                        input =  open(filename, O_RDONLY);
+                        close(input->file_descriptor);
+                        input =  new_file(filename, open(filename, O_RDONLY));
                     }
                     // set it as input
                     // dir chi tekhwar hna
@@ -948,30 +1203,33 @@ Value *evaluate(Node *node, int input, int output)
                     if(inside_pipe)
                     {
                         ft_printf(out, "built in function, with forking\n");
-                        int pid = fork();
+                        int pid = new_pid(fork());
+                        // check if ti fails
                         if (!pid)
                         {  
                             int n = 0;
                             while(n < pipe_pos)
                             {
-                                if(pipes[n] != input && pipes[n] != output)
+                                if(pipes[n] != input->file_descriptor && pipes[n] != output->file_descriptor)
                                     close(pipes[n]);
                                 n++;
                             }
-                            if(input != in)
+                            if(input->file_descriptor != in)
                             {
-                                dup2(input, in);
-                                close(input);
+                                duplicate(input, in);
+                                close(input->file_descriptor);
                             }
-                            if(output != out)
+                            if(output->file_descriptor != out)
                             {
-                                dup2(output, out);
-                                close(output);
+                                duplicate(output, out);
+                                close(output->file_descriptor);
                             }
                             func(&arguments[1]);
                         }
-                        else
-                            pids[pid_pos++] = pid;
+
+                        // pids[pid_pos++] = pid;
+                        node->token->type = pid_;
+                        node->token->process_id = pid;
                     }
                     else
                     {
@@ -983,32 +1241,35 @@ Value *evaluate(Node *node, int input, int output)
                 else
                 {
                     char *full_command = get_command(arguments[0]);
-                    ft_printf(out, "full command is %s has input: %d, output: %d\n", full_command, input, output);
-                    int pid = fork();
+                    ft_printf(out, "full command is %s has input: %d, output: %d\n", full_command, input->file_descriptor, output->file_descriptor);
+                    
+                    int pid = new_pid(fork());
                     if (!pid)
                     {  
                         int n = 0;
                         while(n < pipe_pos)
                         {
-                            if(pipes[n] != input && pipes[n] != output)
+                            if(pipes[n] != input->file_descriptor && pipes[n] != output->file_descriptor)
                                 close(pipes[n]);
                             n++;
                         }
-                        if(input != in)
+                        if(input->file_descriptor != in)
                         {
-                            dup2(input, in);
-                            close(input);
+                            duplicate(input, in);
+                            close(input->file_descriptor);
                         }
-                        if(output != out)
+                        if(output->file_descriptor != out)
                         {
-                            dup2(output, out);
-                            close(output);
+                            duplicate(output, out);
+                            close(output->file_descriptor);
                         }
+                        // chck exit code if command not valid
                         if(execve(full_command, arguments, global_env) < 0)
                             ft_printf(err, "Execve failed\n");
                     }
-                    else
-                        pids[pid_pos++] = pid;
+                    // pids[pid_pos++] = pid;
+                    node->token->type = pid_;
+                    node->token->process_id = pid;
                 }
             }
 
@@ -1019,20 +1280,44 @@ Value *evaluate(Node *node, int input, int output)
             return node->token;
             // break;
         }
+        case and_:
+        case or_:
+        {
+#if 1 // to be checked after
+            ft_printf(out, "open pipe\n");
+            Value *left = evaluate(node->left, input, output);
+            if(left->type != pid_)
+                ft_printf(err, "Expected pid in and/or\n");
+
+            // status = 0;
+            waitpid(left->process_id, &status, 0);
+            if(node->token->type == and_ && status == 0)
+                evaluate(node->right, input, output);
+            if(node->token->type == or_ && status != 0)
+                evaluate(node->right, input, output);
+#endif
+            // to check after what to return
+            break;
+        }
         case pipe_:
         {
             ft_printf(out, "open pipe\n");
             // if there is no right output will be set to out
 
             int fd[2];
+
             if(pipe(fd) < 0 )
                 ft_printf(err, "Error opening pipe\n");
-            pipes[pipe_pos++] = fd[0];
-            pipes[pipe_pos++] = fd[1];
+            
+            new_pipe(fd[0]);
+            new_pipe(fd[1]);
+            // pipes[pipe_pos++] = file_descriptor[0];
+            // pipes[pipe_pos++] = file_descriptor[1];
 
             inside_pipe++;
-            evaluate(node->left, input, fd[1]);            
-            evaluate(node->right, fd[0], output);
+            evaluate(node->left, input, new_file(NULL, fd[1]));
+
+            evaluate(node->right, new_file(NULL, fd[0]), output);
             inside_pipe--;
 
             close(pipes[--pipe_pos]);
@@ -1048,49 +1333,68 @@ Value *evaluate(Node *node, int input, int output)
 
 int main(int argc, char **argv, char **envp)
 {
+    // set all pointers to NULL
     global_env = envp;
-    tokens = ft_calloc(1000, sizeof(Token*));
-    envirement = ft_calloc(1000, sizeof(Token*));
+    addresses = malloc(address_len * sizeof(uintptr_t));
+    tokens = ft_calloc(tokens_len, sizeof(Token*));
+    envirement = ft_calloc(envirement_len, sizeof(Node*));
+    pids = ft_calloc(pid_len, sizeof(int));
+    pipes = ft_calloc(pipe_len, sizeof(int));
+    files = ft_calloc(file_len, sizeof(char*));
 
     for(int i = 0; envp && envp[i] ;i++)
     {
         if(ft_strncmp("PATH", envp[i], ft_strlen("PATH")) == 0)
         {
+            ft_printf(out, "found PATH\n");
             PATH = split(envp[i], ":");
             break;
         }
     }
-    tk_pos = 0;
+    token_pos = 0;
     build_env_tokens(envp);
-    ft_memset(tokens, 0, 1000*sizeof(Token *));
-    ft_printf(out, "\n");
-
+    ft_memset(tokens, 0, tokens_len*sizeof(Token *));
+    file *file_out = new_file(NULL, out);
+    file *file_in = new_file(NULL, in);
 
     while(1)
     {
-        ft_putstr(out, "minishell $> ");
-        text = ft_readline(out);
-        text[ft_strlen(text) - 1] = 0; // to eliminate \n
-        tk_pos = 0;
+        // ft_putstr(out, "minishell $> ");
+        text = readline("minishell $> ");
+        if (text)
+            add_history(text);
+        // text[ft_strlen(text) - 1] = 0; // to eliminate \n
+        token_pos = 0;
         build_tokens();
 #if 1
         exe_pos = 0;
         // build tokens
         ft_printf(out, "\n");
         // evaluate
-        tk_pos++;
+        token_pos++;
         
-        evaluate(expr(), in, out);
-        while(pid_pos >= 0)
+        evaluate(expr(), file_in, file_out);
+        int tmp_pid = pid_pos;
+        while(--pid_pos >= 0)
         {
-            waitpid(pids[pid_pos], NULL, 0);
-            pid_pos--;
+            // if(status == 0)
+                waitpid(pids[pid_pos], &status, 0);
+                ft_printf(out,"received: %d\n", status);
+            // else
+            //     waitpid(pids[pid_pos], NULL, 0);
+                
+            // pid_pos--;
         }
         txt_pos = 0;
         exe_pos = 0;
         pid_pos = 0;
         pipe_pos = 0;
+
 #endif
-        ft_memset(tokens, 0, 1000*sizeof(Token *));
+        // memset everything to zeros
+        ft_memset(tokens, 0, tokens_len*sizeof(Token *));
+        free(text);
+        text = NULL;
     }
+    ft_exit(0);
 }
