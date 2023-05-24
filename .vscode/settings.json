@@ -1,6 +1,8 @@
 {
     "files.associations": {
-        "005.C": "cpp"
+        "005.C": "cpp",
+        "history.h": "c",
+        "readline.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
