@@ -19,7 +19,7 @@ typedef struct List List;
 // types
 enum Type
 {
-    zero_, 
+    start_ = 11, 
     // =                      (        )
     assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |
@@ -56,14 +56,29 @@ struct File
 {
     char *name;
     int fd;
+    Type type;
 };
 
-struct List {
-    void *pointer;
+struct List
+{
+    void **pointer;
     size_t size;
     int pos;
     int len;
 };
+
+struct
+{
+    List addresses;
+    List tokens;
+    List envirement;
+    List files;
+    List pids;
+    List pipes;
+    char **path;
+    char **env;
+    int inside_pipe;
+} global;
 
 // macros
 #define in STDIN_FILENO
@@ -100,6 +115,7 @@ void    ft_putnbr(int file_descriptor, long num);
 void    print_space(int file_descriptor, int len);
 void    ft_printf(int file_descriptor, char *fmt, ...);
 void    add_to_list(List *list, void *pointer);
+void    ft_exit(int code);
 Node    *expr();        // expression
 Node    *or();          // ||
 Node    *and();         // &&

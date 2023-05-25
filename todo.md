@@ -8,7 +8,7 @@ echo, cd, pwd, export, unset, env (command), exit
 
 bonus:
     && || 
-    * 
+    *  (will b ehandled using readir, opendir)
 
 + give avaluate only file name and open it befoer execve then retur nth error shit
 + verify norm before pushing

@@ -87,6 +87,7 @@ void    *ft_calloc(size_t count, size_t size)
 	size_t			i;
 
 	new = (void *)malloc(count * size);
+    add_to_list(&global.addresses, new);
 	if (!new)
 		return (NULL);
 	i = 0;
@@ -99,33 +100,16 @@ void    *ft_calloc(size_t count, size_t size)
 	return (new);
 }
 
-// void    *ft_calloc2(size_t count, size_t size)
-// {
-// 	void			*new;
-// 	unsigned char	*pointer;
-// 	size_t			i;
-
-// 	new = (void *)malloc(count * size);
-// 	if (!new)
-// 		return (NULL);
-// 	i = 0;
-// 	pointer = (unsigned char *)new;
-// 	while (i < count * size)
-// 	{
-// 		pointer[i] = 0;
-// 		i++;
-// 	}
-// 	return (new);
-// }
-
 void *ft_realloc(void *pointer, size_t old_size ,size_t new_size)
 {
-    if (pointer == NULL)
-        return ft_calloc(1, new_size);
-
-    void* new = ft_calloc(1, new_size);
-    ft_memcpy(new, pointer, old_size);
-    free(pointer);
+    void *new;
+    if(pointer == NULL)
+        new = ft_calloc(1, new_size);
+    if(pointer)
+    {
+        new = ft_calloc(1, new_size);
+        ft_memcpy(new, pointer, old_size);
+    }
     return new;
 }
 
@@ -201,12 +185,12 @@ char **split(char *string, char *spliter)
             i += ft_strlen(spliter);
         start = i;
         while(string[i] && ft_strncmp(string + i, spliter, ft_strlen(spliter)) != 0)
-            i++;
+            i++;    
         if(res == NULL)
             res = ft_calloc(j + 2, sizeof(char*));
         else
-            res = ft_realloc(res, (j) * sizeof(char*), ( j + 3 ) * sizeof(char*));
-        res[j] = ft_calloc(i - start + 1, sizeof(char));
+            res = ft_realloc(res, j * sizeof(char*), ( j + 2 ) * sizeof(char*));
+        res[j] = ft_calloc(i - start + 2, sizeof(char));
         ft_strncpy(res[j], string + start, i - start);
         j++;
         res[j] = NULL;
@@ -289,32 +273,32 @@ char *ft_itoa(int num)
 }
 
 // printf
-void ft_putchar(int file_descriptor, int c){ write(file_descriptor, &c, sizeof(char));}
-void ft_putstr(int file_descriptor, char *str){ write(file_descriptor, str, ft_strlen(str));}
-void ft_putnbr(int file_descriptor, long num)
+void ft_putchar(int fd, int c){ write(fd, &c, sizeof(char));}
+void ft_putstr(int fd, char *str){ write(fd, str, ft_strlen(str));}
+void ft_putnbr(int fd, long num)
 {
     if (num < 0)
     {
-        ft_putchar(file_descriptor, '-');
+        ft_putchar(fd, '-');
         num = -num;
     }
-    if (num < 10) ft_putchar(file_descriptor, num + '0');
+    if (num < 10) ft_putchar(fd, num + '0');
     else
     {
-        ft_putnbr(file_descriptor, num / 10);
-        ft_putnbr(file_descriptor, num % 10);
+        ft_putnbr(fd, num / 10);
+        ft_putnbr(fd, num % 10);
     }
 }
-void print_space(int file_descriptor, int len)
+void print_space(int fd, int len)
 {
     int i = 0;
     while(i < len)
     {
-        ft_putchar(file_descriptor, ' ');
+        ft_putchar(fd, ' ');
         i++;
     }
 }
-void ft_printf(int file_descriptor, char *fmt, ...)
+void ft_printf(int fd, char *fmt, ...)
 {
     va_list ap;
 
@@ -351,8 +335,8 @@ void ft_printf(int file_descriptor, char *fmt, ...)
                     case heredoc_:
                     case and_:
                     case or_:
-                        print_space(file_descriptor, space - ft_strlen(variable->value));
-                        ft_putstr(file_descriptor, variable->value);
+                        print_space(fd, space - ft_strlen(variable->value));
+                        ft_putstr(fd, variable->value);
                         break;
                     default:
                         ft_putstr(err, "Unkown given token type: ");
@@ -363,35 +347,48 @@ void ft_printf(int file_descriptor, char *fmt, ...)
                     }
                 }
                 else
-                    ft_putstr(file_descriptor, "(null token)");
+                    ft_putstr(fd, "(null token)");
             }
             if (fmt[i] == 't')
             {
                 char* type = type_to_string(va_arg(ap, Type));
-                print_space(file_descriptor, space - ft_strlen(type));
-                ft_putstr(file_descriptor, type);
+                print_space(fd, space - ft_strlen(type));
+                ft_putstr(fd, type);
+            }
+            if(fmt[i] == 'F')
+            {
+                File file = va_arg(ap, File);
+                if(file.name)
+                    ft_printf(out, "filename: %s, ", file.name);
+                if(file.fd >= 0)
+                    ft_printf(out, "fd: %d, ", file.fd);
+                else
+                    ft_printf(out, "fd: NOT OPENED, ");
+                if(file.type )
+                    ft_printf(out, "with type %s", type_to_string(file.type));
+            
             }
             if (fmt[i] == 'd')
             {
                 int num = va_arg(ap, int);
-                ft_putnbr(file_descriptor, (long)num);
+                ft_putnbr(fd, (long)num);
             }
             if (fmt[i] == 'c')
             {
                 int c = va_arg(ap, int);
-                ft_putchar(file_descriptor, c);
+                ft_putchar(fd, c);
             }
             if (fmt[i] == 's')
             {
                 char *str = va_arg(ap, char *);
-                ft_putstr(file_descriptor, str);
+                ft_putstr(fd, str);
             }
         }
         else
-            ft_putchar(file_descriptor, fmt[i]);
+            ft_putchar(fd, fmt[i]);
         i++;
     }
     va_end(ap);
-    if (file_descriptor == err)
+    if (fd == err)
         ft_exit(1);
 }

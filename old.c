@@ -1374,6 +1374,7 @@ int main(int argc, char **argv, char **envp)
         token_pos++;
         
         evaluate(expr(), file_in, file_out);
+        
         int tmp_pid = pid_pos;
         while(--pid_pos >= 0)
         {
