@@ -318,7 +318,7 @@ File new_file(char* name, int fd, Type type)
 // Execution
 char *get_command(char *cmd)
 {
-    ft_printf(out, "call get command to find %s\n", cmd);
+    ft_printf(out, "\ncall get command to find %s\n", cmd);
     if(cmd == NULL || ft_strchr(cmd, '/'))
         return cmd;
     int i = 0;
@@ -338,17 +338,18 @@ char *get_command(char *cmd)
 }
 
 // built in functions
-void echo_func(char **arguments)
+void echo_func(File file, char **arguments)
 {
+
     int i = 0;
     while(arguments && arguments[i])
     {
         // ft_putstr(out, arguments[i]);
-        ft_printf(out ,"%s ", arguments[i]);
+        ft_printf(file.fd ,"%s ", arguments[i]);
         i++;
     }
 }
-void cd_func(char **arguments)
+void cd_func(File file, char **arguments)
 {
     if(arguments[0])
         chdir(arguments[0]);
@@ -371,15 +372,14 @@ void cd_func(char **arguments)
     }
 }
 
-void pwd_func(char **arguments)
+void pwd_func(File file, char **arguments)
 {
     char *new = getcwd(NULL, 0);
     ft_printf(out, "%s\n", new);
     free(new);
-
 }
 
-void export_func(char **arguments)
+void export_func(File file, char **arguments)
 {
     if(arguments[0])
     {
@@ -407,7 +407,7 @@ void export_func(char **arguments)
     }
 }
 
-void unset_func(char **argument)
+void unset_func(File file, char **argument)
 {
     ft_printf(out, "in unset search for '%s'\n", argument[0]);
     // to be handled after
@@ -425,7 +425,7 @@ void unset_func(char **argument)
         i++;
     }
 }
-void env_func(char **arguments)
+void env_func(File file, char **arguments)
 {
     int i = 0;
     Node **envirement = (Node**)global.envirement.pointer;
@@ -437,7 +437,7 @@ void env_func(char **arguments)
         i++;
     }
 }
-void exit_func(char **arguments)
+void exit_func(File file, char **arguments)
 {
     ft_exit(0); // verify exit code after
 }
@@ -467,8 +467,10 @@ char *get_var(char *name)
     int i = 0;
     ft_printf(out, "Enter get_var, search for '%s'\n", name);
     Node **nodes = (Node **)global.envirement.pointer;
-    // if(ft_strcmp(name, "?") == 0)
-    //     return ft_itoa(status);
+    if(ft_strcmp(name, "?") == 0)
+    {
+        return ft_itoa(get_last_exit_code());
+    }
     while(nodes && nodes[i])
     {
         if(ft_strcmp(nodes[i]->left->token->value, name) == 0)
@@ -548,7 +550,7 @@ char *expand(Token *token)
     return res;
 }
 
-void duplicate(File *file, int old)
+void open_file(File *file)
 {
     if(file->fd == NOT_OPENED && file->name == NULL)
     {    
@@ -611,21 +613,24 @@ void duplicate(File *file, int old)
         }
          
     }
-    dup2(file->fd, old);
+    // dup2(file->fd, old);
 }
 
 int get_last_exit_code()
 {
-    printf("call get last exit code\n");
+    printf("\ncall get last exit code\n");
     int *pids = global.pids.integers;
+    static int res;
     if(global.pids.pos == 0)
     {
         printf("Error there is no child processes\n");
-        exit(-1);
+        // exit(-1);
+        return (res);
     }
     int status = 0;
     waitpid(pids[--global.pids.pos], &status, 0);
-    return(WEXITSTATUS(status));
+    res = WEXITSTATUS(status);
+    return(res);
 }
 
 Value *evaluate(Node *node, File input, File output)
@@ -711,7 +716,7 @@ Value *evaluate(Node *node, File input, File output)
             if(arguments && arguments[0])
             {
                 // built in function
-                void (*func)(char**) = built_in(arguments[0]);
+                void (*func)(File, char**) = built_in(arguments[0]);
                 if(func)
                 {
                     // if inside_pipe fork
@@ -736,23 +741,27 @@ Value *evaluate(Node *node, File input, File output)
                             if(input.type == redir_input)
                             {
                                 // ft_putstr(out, "redir input\n");
-                                duplicate(&input, in);
+                                open_file(&input);
+                                dup2(input.fd, in);
                                 close(input.fd);
                             }
                             if(output.type == redir_output || output.type == append_)
                             {
                                 // ft_putstr(out, "redir output\n");
-                                duplicate(&output, out);
+                                open_file(&output);
+                                dup2(output.fd, out);
                                 close(output.fd);
                             }
-                            func(&arguments[1]);
+                            
+                            func(output ,&arguments[1]); // does not make senec, caus you already did dup2, handle it
                             exit(SUCCESS);
                         }
                     }
                     else
                     {
                         ft_printf(out, "built in function, without forking\n");
-                        func(&arguments[1]);
+                        open_file(&output);
+                        func(output ,&arguments[1]);
                         int pid = fork();
                         add_integer_to_list(&global.pids, pid);
                         if(pid == 0)
@@ -764,6 +773,8 @@ Value *evaluate(Node *node, File input, File output)
                                 close(pipes[i]);
                                 i++;
                             }
+                            // close(input.fd);
+                            // close(output.fd);
                             exit(SUCCESS);
                         }
                     }
@@ -793,13 +804,15 @@ Value *evaluate(Node *node, File input, File output)
                         if(input.type == redir_input)
                         {
                             // ft_putstr(out, "redir input\n");
-                            duplicate(&input, in);
+                            open_file(&input);
+                            dup2(input.fd, in);
                             close(input.fd);
                         }
                         if(output.type == redir_output || output.type == append_)
                         {
                             // ft_putstr(out, "redir output\n");
-                            duplicate(&output, out);
+                            open_file(&output);
+                            dup2(output.fd, out);
                             close(output.fd);
                         }
                         // check exit code if command not valid

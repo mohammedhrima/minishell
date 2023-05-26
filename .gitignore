@@ -10,4 +10,6 @@
 # Ignore the a.out.dSYM folder in the current folder and all subfolders
 a.out.dSYM
 
+out*
+
 ./vscode

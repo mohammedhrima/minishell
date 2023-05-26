@@ -133,4 +133,6 @@ Node    *pipe_node();   // |
 Node    *prime();       // files, command, argument, (), built in commands: echo, cd, pwd, export, unset, env, exit
 Node *new_node(Token *token);
 char*   type_to_string(Type type);
+int get_last_exit_code();
+
 #endif
