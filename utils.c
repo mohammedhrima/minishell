@@ -87,7 +87,7 @@ void    *ft_calloc(size_t count, size_t size)
 	size_t			i;
 
 	new = (void *)malloc(count * size);
-    add_to_list(&global.addresses, new);
+    // add_pointer_to_list(&global.addresses, new);
 	if (!new)
 		return (NULL);
 	i = 0;
@@ -300,8 +300,8 @@ void print_space(int fd, int len)
 }
 void ft_printf(int fd, char *fmt, ...)
 {
+# if 1
     va_list ap;
-
     va_start(ap, fmt);
     int i = 0;
     while (fmt && fmt[i])
@@ -333,13 +333,14 @@ void ft_printf(int fd, char *fmt, ...)
                     case redir_input:
                     case redir_output:
                     case heredoc_:
+                    case append_:
                     case and_:
                     case or_:
                         print_space(fd, space - ft_strlen(variable->value));
                         ft_putstr(fd, variable->value);
                         break;
                     default:
-                        ft_putstr(err, "Unkown given token type: ");
+                        ft_putstr(err, "Error in ft_printf: Unkown given token type: ");
                         ft_putnbr(err, variable->type);
                         ft_putstr(err, "\n");
                         ft_exit(0);
@@ -391,4 +392,5 @@ void ft_printf(int fd, char *fmt, ...)
     va_end(ap);
     if (fd == err)
         ft_exit(1);
+#endif
 }

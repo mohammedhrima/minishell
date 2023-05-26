@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 typedef enum Type Type;
@@ -19,7 +20,8 @@ typedef struct List List;
 // types
 enum Type
 {
-    start_ = 11, 
+    start_ = 11,
+    integers_, pointers_,
     // =                      (        )
     assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |
@@ -61,7 +63,13 @@ struct File
 
 struct List
 {
-    void **pointer;
+    Type type;
+    
+    union
+    {
+        void **pointer;
+        int *integers;
+    };
     size_t size;
     int pos;
     int len;
@@ -70,10 +78,11 @@ struct List
 struct
 {
     List addresses;
-    List tokens;
     List envirement;
+    List tokens;
     List files;
     List pids;
+    List exist_status;
     List pipes;
     char **path;
     char **env;
@@ -114,12 +123,14 @@ void    ft_putstr(int file_descriptor, char *str);
 void    ft_putnbr(int file_descriptor, long num);
 void    print_space(int file_descriptor, int len);
 void    ft_printf(int file_descriptor, char *fmt, ...);
-void    add_to_list(List *list, void *pointer);
+void    add_pointer_to_list(List *list, void *pointer);
+void    add_integer_to_list(List *list, int number);
 void    ft_exit(int code);
 Node    *expr();        // expression
-Node    *or();          // ||
-Node    *and();         // &&
+Node    *and_or();          // ||
+// Node    *and();         // &&
 Node    *pipe_node();   // |
 Node    *prime();       // files, command, argument, (), built in commands: echo, cd, pwd, export, unset, env, exit
+Node *new_node(Token *token);
 char*   type_to_string(Type type);
 #endif

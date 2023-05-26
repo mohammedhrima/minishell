@@ -2,10 +2,11 @@
 
 
 // exit codes
-#define SUCESS 0
+#define SUCCESS 0
 #define NO_SUCH_FILE_OR_DIR 1
 #define PERMISSION_DENIED 1
 #define NOT_OPENED -200
+#define COMMAND_NOT_FOUND 127
 
 struct {
     char *value;
@@ -23,37 +24,45 @@ struct {
     {"unset", unset_}, {"env", env_}, {"exit", exit_}, {0 , 0}
 };
 
-List *new_list(List *list, size_t size)
+List *new_list(List *list, size_t size, Type type)
 {
-    if(list->len == 0)
-    {
-        list->pos = 0;
-        list->len = 100;
-        list->size = size;
+    list->pos = 0;
+    list->len = 100;
+    list->type = type;
+    list->size = size;
+    if(type == integers_)
+        list->integers = ft_calloc(list->len, size);
+    if(type == pointers_)
         list->pointer = ft_calloc(list->len, size);
-    }
     return list;
 }
+
 
 void free_list(List *list)
 {
     // if get error use ft_memeset 0
-    int i = 0;
-    while(i < list->pos)
+    if(list->type == integers_)
+        free(list->integers);
+    if(list->type == pointers_)
     {
-        free(((void**)list->pointer)[i]);
-        i++;
+        int i = 0;
+        while(i < list->pos)
+        {
+            free(((void**)list->pointer)[i]);
+            i++;
+        }
+        free(list->pointer);
+        list->size = 0;
     }
     list->pos = 0;
     list->len = 0;
-    list->size = 0;
-    free(list->pointer);
 }
 
 Token *new_token(Type type, char *source, int len)
 {
     Token *new = ft_calloc(1, sizeof(Token));
     new->type = type;
+    
     if(source)
     {
         new->value = ft_calloc(len + 1, sizeof(char));
@@ -68,18 +77,35 @@ Token *new_token(Type type, char *source, int len)
     if(new->value)
         ft_printf(out, "has value: '%k'", new);
     ft_printf(out, "\n");
-    add_to_list(&global.tokens, new);
+    add_pointer_to_list(&global.tokens, new);
 
     return new;
 };
 
-void add_to_list(List *list, void *pointer)
+void add_integer_to_list(List *list, int number)
 {
-    ((void**)list->pointer)[list->pos++] = pointer;
+    list->integers[list->pos++] = number;
+    
     if(list->pos + 10 > list->len)
     {
         list->len *= 2;
         void *temporary = ft_calloc(list->len, list->size);
+
+        ft_memcpy(temporary, list->integers, list->pos * list->size);
+        free(list->integers);
+        list->integers = temporary;
+    }
+}
+
+void add_pointer_to_list(List *list, void *pointer)
+{
+    list->pointer[list->pos++] = pointer;
+    
+    if(list->pos + 10 > list->len)
+    {
+        list->len *= 2;
+        void *temporary = ft_calloc(list->len, list->size);
+    
         ft_memcpy(temporary, list->pointer, list->pos * list->size);
         free(list->pointer);
         list->pointer = temporary;
@@ -91,7 +117,7 @@ void build_envirement(char **envp)
     int i = 0;
     while(envp && envp[i])
     {
-        // // ft_printf(out, "%s\n", envp[i]);
+#if 0
         char **array = split_by_two(envp[i], '='); // split by only two, to be verified after
         Node *node = ft_calloc(1, sizeof(Node));
 
@@ -107,6 +133,13 @@ void build_envirement(char **envp)
 
         ft_printf(out, "%s is %s\n", node->left->token->value, node->right->token->value);
         add_to_list(&global.envirement, node);
+#else
+        char **array = split_by_two(envp[i], '='); // split by only two, to be verified after
+        Node *node = new_node(new_token(assign_, NULL, 0));
+        node->left = new_node(new_token(identifier_, array[0], ft_strlen(array[0])));
+        node->right = new_node(new_token(identifier_, array[1], ft_strlen(array[1])));
+        add_pointer_to_list(&global.envirement, node);
+#endif
         i++;
     }
 }
@@ -178,7 +211,8 @@ Node *new_node(Token *token)
 {
     Node *new = ft_calloc(1, sizeof(Node));
     new->token = token;
-    ft_printf(out, "new  node with type %15t has token: '%k'\n", token->type, new->token);
+    if(new->token)
+        ft_printf(out, "new  node with type %15t has token: '%k'\n", token->type, new->token);
     return new;
 }
 
@@ -193,72 +227,30 @@ void skip(Type type)
 Node *expr()
 {
     ft_printf(out, "call expr\n");
-    return and();
+    return and_or();
 }
 
-
-Node *and()
+Node *and_or()
 {
-    ft_printf(out, "call and\n");
-    Node *left = pipe_node();
+    ft_printf(out, "call and or\n");    
     Token *token = (Token*)global.tokens.pointer[global.tokens.pos];
-#if 0
-    if(token->type == and_ || token->type == or_)
-    {
-        ft_printf(out, "find %t\n", token->type);
-        Node *node = new_node(token);
-        skip(token->type);
-        node->left = left;
-        node->right = and();
-        left = node;
-        // token = (Token*)global.tokens.pointer[global.tokens.pos];
-    }
-    return left;
-
-#elif 1
-    while(token->type == and_ || token->type == or_)
-    {
-        node->right = new_node(token);
-        node = node->right;
-
-        node->token->start = global.tokens.pos;
-        node->token->len = 0;
-        while(token->type == and_ || token->type == or_)
-        {
-            skip(token->type);
-            node->token->len++;
-#if 0
-            node->left = left;
-            node->right = pipe_node();
-            left = node;
-#else
-            pipe_node();
-#endif
-            token = (Token*)global.tokens.pointer[global.tokens.pos];
-        }
-#endif
-    }
-    return left;
-}
-// maybe || and && have the same precedence (check in testing)
-#if 0
-Node *or()
-{
-    ft_printf(out, "call or\n");
-    Node *left = pipe_node();
-    Token *token = (Token*)global.tokens.pointer[global.tokens.pos];
-    while(token->type == or_)
+    if (token->type == or_)
     {
         Node *node = new_node(token);
         skip(token->type);
-        node->left = left;
-        node->right = pipe_node();
-        left = node;
-        token = (Token*)global.tokens.pointer[global.tokens.pos];
+        node->left = pipe_node();
+        return node;
     }
-    return left;
+    if (token->type == and_)
+    {
+        Node *node = new_node(token);
+        skip(token->type);
+        node->left = pipe_node();
+        return node;
+    }
+    return (pipe_node());
 }
-#endif
+
 Node *pipe_node()
 {
     ft_printf(out, "call pipe\n");
@@ -312,6 +304,17 @@ Node *prime()
     return NULL;
 }
 
+File new_file(char* name, int fd, Type type)
+{
+    File *new = ft_calloc(1, sizeof(File));
+    new->name = name;
+    new->fd = fd;
+    new->type = type;
+
+    add_pointer_to_list(&global.files, new);
+    return *new;
+}
+
 // Execution
 char *get_command(char *cmd)
 {
@@ -330,8 +333,132 @@ char *get_command(char *cmd)
         }
         i++;
     }
-    ft_printf(err, "allo\n");
+    ft_printf(out, "command not found\n");
     return cmd;
+}
+
+// built in functions
+void echo_func(char **arguments)
+{
+    int i = 0;
+    while(arguments && arguments[i])
+    {
+        // ft_putstr(out, arguments[i]);
+        ft_printf(out ,"%s ", arguments[i]);
+        i++;
+    }
+}
+void cd_func(char **arguments)
+{
+    if(arguments[0])
+        chdir(arguments[0]);
+    else
+    {
+        int i = 0;
+        char *location = "/";
+        Node **envirement = (Node**)global.envirement.pointer;
+        while (envirement && envirement[i])
+        {
+            char *value = envirement[i]->left->token->value;
+            if(value && ft_strcmp(value, "HOME") == 0)
+            {
+                location = envirement[i]->right->token->value;
+                break;
+            }
+            i++;
+        }
+        chdir(location);
+    }
+}
+
+void pwd_func(char **arguments)
+{
+    char *new = getcwd(NULL, 0);
+    ft_printf(out, "%s\n", new);
+    free(new);
+
+}
+
+void export_func(char **arguments)
+{
+    if(arguments[0])
+    {
+        char **array = split(arguments[0], "=");
+        Node *node = new_node(new_token(assign_, NULL, 0));
+        node->left = new_node(new_token(identifier_, array[0], ft_strlen(array[0])));
+        node->right = new_node(new_token(identifier_, array[1], ft_strlen(array[1])));
+
+        ft_printf(out, "+ new node with type: %t \n", node->token->type);
+        ft_printf(out, "           has  left: %k\n", node->left->token);
+        ft_printf(out, "           has right: %k\n\n", node->right->token);
+
+        return;
+    }
+    else
+    {
+        int i = 0;
+        Node **envirement = (Node**)global.envirement.pointer;
+        while (envirement && envirement[i])
+        {
+            if(envirement[i]->left->token->value)
+                printf("declare -x %s=\"%s\"\n", envirement[i]->left->token->value, envirement[i]->right->token->value);
+            i++;
+        }
+    }
+}
+
+void unset_func(char **argument)
+{
+    ft_printf(out, "in unset search for '%s'\n", argument[0]);
+    // to be handled after
+    int i = 0;
+    Node **envirement = (Node**)global.envirement.pointer;
+    while (envirement && envirement[i])
+    {
+        char *value = envirement[i]->left->token->value;
+        if(value && ft_strcmp(value, argument[0]) == 0)
+        {
+            ft_printf(out, "found in unset\n");
+            envirement[i]->left->token->value = NULL;
+            break;
+        }
+        i++;
+    }
+}
+void env_func(char **arguments)
+{
+    int i = 0;
+    Node **envirement = (Node**)global.envirement.pointer;
+    while(envirement[i])
+    {
+        // print only those who have right token
+        if(envirement[i]->left->token->value)
+            printf("%s=%s\n", envirement[i]->left->token->value, envirement[i]->right->token->value);
+        i++;
+    }
+}
+void exit_func(char **arguments)
+{
+    ft_exit(0); // verify exit code after
+}
+
+void* built_in(char *cmd)
+{
+    if(ft_strcmp(cmd, "echo") == 0)
+        return &echo_func;
+    if(ft_strcmp(cmd, "cd") == 0)
+        return &cd_func;
+    if(ft_strcmp(cmd, "pwd") == 0)
+        return &pwd_func;
+    if(ft_strcmp(cmd, "export") == 0)
+        return &export_func;
+    if(ft_strcmp(cmd, "unset") == 0)
+        return &unset_func;
+    if(ft_strcmp(cmd, "env") == 0)
+        return &env_func;
+    if(ft_strcmp(cmd, "exit") == 0)
+        return &exit_func;
+    return NULL;
 }
 
 // expanding
@@ -421,17 +548,6 @@ char *expand(Token *token)
     return res;
 }
 
-File *new_file(char* name, int fd, Type type)
-{
-    File *new = ft_calloc(1, sizeof(File));
-    new->name = name;
-    new->fd = fd;
-    new->type = type;
-
-    add_to_list(&global.files, new);
-    return new;
-}
-
 void duplicate(File *file, int old)
 {
     if(file->fd == NOT_OPENED && file->name == NULL)
@@ -442,6 +558,7 @@ void duplicate(File *file, int old)
     
     if(file->type == redir_input)
     {
+        ft_putstr(out, "redir input\n");
         if(file->fd == NOT_OPENED)
         {
             if(access(file->name, F_OK)) // check existance
@@ -463,6 +580,7 @@ void duplicate(File *file, int old)
     }
     if(file->type == redir_output)
     {
+        ft_putstr(out, "redir output\n");
         if(file->fd == NOT_OPENED)
         {
             if(access(file->name, F_OK) == 0 &&  access(file->name, W_OK)) // check if readable
@@ -473,11 +591,41 @@ void duplicate(File *file, int old)
             else
             {
                 // verify access 0644 or 0777 // to check after
-                file->fd = open(file->name,  O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                file->fd = open(file->name,  O_WRONLY | O_CREAT | O_TRUNC);
             }
         }   
     }
+    if(file->type == append_)
+    {
+        ft_putstr(out, "redir append\n");
+        if(access(file->name, F_OK) == 0 &&  access(file->name, W_OK)) // check if readable
+        {
+            ft_printf(out, "minishell: %s: Permission denied\n", file->name);
+            ft_exit(PERMISSION_DENIED);
+        }
+        else
+        {
+            // ft_printf(out, "hey in duplacate");
+            // verify access 0644 or 0777 // to check after
+            file->fd = open(file->name, O_WRONLY | O_CREAT | O_APPEND);
+        }
+         
+    }
     dup2(file->fd, old);
+}
+
+int get_last_exit_code()
+{
+    printf("call get last exit code\n");
+    int *pids = global.pids.integers;
+    if(global.pids.pos == 0)
+    {
+        printf("Error there is no child processes\n");
+        exit(-1);
+    }
+    int status = 0;
+    waitpid(pids[--global.pids.pos], &status, 0);
+    return(WEXITSTATUS(status));
 }
 
 Value *evaluate(Node *node, File input, File output)
@@ -490,6 +638,7 @@ Value *evaluate(Node *node, File input, File output)
         case redir_input: // verify if need to be removed
         case redir_output:
         case heredoc_: 
+        case append_:
         {
             int len = 0;
             char **arguments = NULL;
@@ -510,7 +659,8 @@ Value *evaluate(Node *node, File input, File output)
                 (
                     token->type == redir_input ||
                     token->type == redir_output ||
-                    token->type == heredoc_
+                    token->type == heredoc_     || 
+                    token->type == append_
                 )
                 {
                     Type type = token->type;
@@ -526,15 +676,15 @@ Value *evaluate(Node *node, File input, File output)
                             be carefull here because maybe you will
                             get back to stdin 
                         */
-                        input = *new_file(filename, NOT_OPENED, type);
+                        input = new_file(filename, NOT_OPENED, type);
                     }
-                    if(type == redir_output)
+                    if(type == redir_output || type == append_)
                     {
                         /*
                             be carefull here because maybe you will
                             get back to stdout 
                         */
-                        output = *new_file(filename, NOT_OPENED, type);
+                        output = new_file(filename, NOT_OPENED, type);
                     }
                     if(type == heredoc_)
                     {
@@ -542,7 +692,7 @@ Value *evaluate(Node *node, File input, File output)
                         char *delimiter = filename;
                         filename = ft_strdup("/tmp/heredoc");
                         
-                        input =  *new_file(filename, open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644), type);
+                        input =  new_file(filename, open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644), type);
                         char *res = NULL;
                         while(res == NULL || ft_strcmp(res, delimiter))
                         {
@@ -552,7 +702,7 @@ Value *evaluate(Node *node, File input, File output)
                         }
                         close(input.fd);
                         input.type = redir_input;
-                        input =  *new_file(filename, NOT_OPENED, type);
+                        input =  new_file(filename, NOT_OPENED, type);
                     }
                 }
                 pos++;
@@ -560,43 +710,107 @@ Value *evaluate(Node *node, File input, File output)
             }
             if(arguments && arguments[0])
             {
-                char *full_command = get_command(arguments[0]);
-                ft_printf(out, "full command is %s\n    has  input: %F\n    has output: %F\n", full_command, input, output);
-                
-                int *ptr = ft_calloc(1,sizeof(int));
-                add_to_list(&global.pids, ptr);
-                int pid = fork();
-                *ptr = pid;
-                node->token->type = pid_;
-                node->token->process_id = pid;
-                if (pid == 0)
-                {  
-                    int **pipes = (int**)global.pipes.pointer;
-                    int i = 0;
-                    while(i < global.pipes.pos)
+                // built in function
+                void (*func)(char**) = built_in(arguments[0]);
+                if(func)
+                {
+                    // if inside_pipe fork
+                    if(global.inside_pipe)
                     {
-                        int fd = *(pipes[i]);
-                        if(fd != input.fd && fd != output.fd && fd != out && fd != in)
-                            close(fd);
-                        i++;
+                        ft_printf(out, "built in function, with forking\n");
+                        int pid = fork();
+                        add_integer_to_list(&global.pids, pid);
+
+                        node->token->type = pid_;
+                        node->token->process_id = pid;
+                        if (!pid)
+                        {  
+                            int *pipes = global.pipes.integers;
+                            int i = 0;
+                            while(i < global.pipes.pos)
+                            {
+                                if(pipes[i] != input.fd && pipes[i] != output.fd && pipes[i] != out && pipes[i] != in)
+                                    close(pipes[i]);
+                                i++;
+                            }
+                            if(input.type == redir_input)
+                            {
+                                // ft_putstr(out, "redir input\n");
+                                duplicate(&input, in);
+                                close(input.fd);
+                            }
+                            if(output.type == redir_output || output.type == append_)
+                            {
+                                // ft_putstr(out, "redir output\n");
+                                duplicate(&output, out);
+                                close(output.fd);
+                            }
+                            func(&arguments[1]);
+                            exit(SUCCESS);
+                        }
                     }
-                    if(input.type == redir_input)
+                    else
                     {
-                        ft_putstr(out, "redir input\n");
-                        duplicate(&input, in);
-                        close(input.fd);
+                        ft_printf(out, "built in function, without forking\n");
+                        func(&arguments[1]);
+                        int pid = fork();
+                        add_integer_to_list(&global.pids, pid);
+                        if(pid == 0)
+                        {
+                            int *pipes = global.pipes.integers;
+                            int i = 0;
+                            while(i < global.pipes.pos)
+                            {
+                                close(pipes[i]);
+                                i++;
+                            }
+                            exit(SUCCESS);
+                        }
                     }
-                    if(output.type == redir_output)
-                    {
-                        ft_putstr(out, "redir output\n");
-                        duplicate(&output, out);
-                        close(output.fd);
-                    }
-                    // check exit code if command not valid
-                    if(execve(full_command, arguments, global.env) < 0)
-                        ft_printf(err, "Execve failed\n");
                 }
-                // waitpid(pid, 0, 0);
+                // executable
+                else
+                {
+                    char *full_command = get_command(arguments[0]);
+                    ft_printf(out, "full command is %s\n    has  input: %F\n    has output: %F\n", full_command, input, output);
+                
+                    int pid = fork();
+                    add_integer_to_list(&global.pids, pid);
+
+                    node->token->type = pid_;
+                    node->token->process_id = pid;
+
+                    if (pid == 0)
+                    {  
+                        int *pipes = global.pipes.integers;
+                        int i = 0;
+                        while(i < global.pipes.pos)
+                        {
+                            if(pipes[i] != input.fd && pipes[i] != output.fd && pipes[i] != out && pipes[i] != in)
+                                close(pipes[i]);
+                            i++;
+                        }
+                        if(input.type == redir_input)
+                        {
+                            // ft_putstr(out, "redir input\n");
+                            duplicate(&input, in);
+                            close(input.fd);
+                        }
+                        if(output.type == redir_output || output.type == append_)
+                        {
+                            // ft_putstr(out, "redir output\n");
+                            duplicate(&output, out);
+                            close(output.fd);
+                        }
+                        // check exit code if command not valid
+                        if(execve(full_command, arguments, global.env) < 0)
+                        {
+                            // ft_printf(err, "Execve failed\n");
+                            ft_printf(out, "command not found\n");
+                            exit(COMMAND_NOT_FOUND);
+                        }
+                    }
+                }                
             }
             return node->token;
         }
@@ -605,88 +819,72 @@ Value *evaluate(Node *node, File input, File output)
             ft_printf(out, "open pipe\n");
             // if there is no right output will be set to out
 
-            int *fd;
-            fd = ft_calloc(2 , sizeof(int));
+            int fd[2];
 
             if(pipe(fd) < 0 )
                 ft_printf(err, "Error opening pipe\n");
             
-            add_to_list(&global.pipes, &fd[0]);
-            add_to_list(&global.pipes, &fd[1]);
+            add_integer_to_list(&global.pipes, fd[0]);
+            add_integer_to_list(&global.pipes, fd[1]);
             
             global.inside_pipe++;
-            evaluate(node->left, input, *new_file(NULL, fd[1], redir_output));
+            evaluate(node->left, input, new_file(NULL, fd[1], redir_output));
 
-            evaluate(node->right, *new_file(NULL, fd[0], redir_input), output);
+            evaluate(node->right, new_file(NULL, fd[0], redir_input), output);
             global.inside_pipe--;
 
-            int **pipes = (int **)global.pipes.pointer; 
+            int *pipes = global.pipes.integers; 
 
             global.pipes.pos--;
-            close(*(pipes[global.pipes.pos]));
+            close(pipes[global.pipes.pos]);
             global.pipes.pos--;
-            close(*(pipes[global.pipes.pos]));
+            close(pipes[global.pipes.pos]);
 
             break;
         }
         case and_:
         case or_:
         {
-# if 1
-            Node *tmp = node;
-            Token* token = tmp->token;
-            int status = 1;
-            
-            if(tmp)
-            {
-                Value *left = evaluate(tmp, input, output);
-                if(left->type != pid_)
-                    ft_printf(err, "Expected pid in and/or\n");
-                
-                waitpid(left->process_id, &status, 0);
-                ft_printf(out,"and_or: received status: %d\n", status);
-                global.pids.pos--;
-                if(token->type == or_ && status != 0)
-                {
-                    evaluate(tmp->right);
-                }
-                if(token->type == or_ && status == 0)
-                {
-
-                }
-                if(token->type == and_ && status != 0)
-                    tmp = tmp->right;
-
-                // tmp = tmp->right;
-                // token = tmp->token;         
-                // status = 1;
-            }
-            return token;
-#elif 0
+            int status = get_last_exit_code();
+            printf("last exit code is %d\n", status);
+            // in case && if status != 0, add a number to exit code list
             if(node->token->type == and_ && status == 0)
+                return evaluate(node->left, input, output);
+            if(node->token->type == and_ && status != 0)
             {
-                Value *right = evaluate(node->right, input, output);
-                return right;
+                int pid = fork();
+                add_integer_to_list(&global.pids, pid);
+                if(pid == 0)
+                {
+                    int *pipes = global.pipes.integers;
+                    int i = 0;
+                    while(i < global.pipes.pos)
+                    {
+                        close(pipes[i]);
+                        i++;
+                    }
+                    exit(status);
+                }
             }
             if(node->token->type == or_ && status != 0)
+                return evaluate(node->left, input, output);
+            if(node->token->type == or_ && status == 0)
             {
-                Value *right = evaluate(node->right, input, output);
-                return right;
+                int pid = fork();
+                add_integer_to_list(&global.pids, pid);
+                if(pid == 0)
+                {
+                    int *pipes = global.pipes.integers;
+                    int i = 0;
+                    while(i < global.pipes.pos)
+                    {
+                        close(pipes[i]);
+                        i++;
+                    }
+                    exit(status);
+                }
             }
-            return left;
-#elif 0
-            int i = 0;
-            int pos = node->token->start;
-            while(i < node->token->len)
-            {
-                Token *token = (Token*)global.tokens.pointer[pos];
-                Value *value = evaluate(token, input, output);
-                if(value->type != pid_)
-                    ft_printf(err, "Expected pid in and/or\n");
-                
-            }
-#endif
-            break;
+            return NULL;
         }
         default:
             ft_printf(err, "Error in evaluate\n");
@@ -701,9 +899,11 @@ int main(int argc, char **argv, char **envp)
 
     global.addresses.len = 100;
     global.addresses.size = sizeof(void**);
+    global.addresses.type = pointers_;
     global.addresses.pointer = malloc(global.addresses.len * global.addresses.size);
 
-    new_list(&global.envirement, sizeof(Node*));
+    new_list(&global.envirement, sizeof(Node*), pointers_);
+    new_list(&global.tokens, sizeof(Token*), pointers_);
 
     char *text;
     int i = 0;
@@ -718,42 +918,44 @@ int main(int argc, char **argv, char **envp)
         i++;
     }
     build_envirement(envp);
-    
+    ft_memset(&global.tokens, 0, sizeof(List));
+
+#if 1
     while(1)
     {
-#if 1
-        new_list(&global.tokens, sizeof(Token*));
-        new_list(&global.files, sizeof(File*));
-        new_list(&global.pids, sizeof(int*));
-        new_list(&global.pipes, sizeof(int*));
+        new_list(&global.tokens, sizeof(Token*), pointers_);
+        new_list(&global.files, sizeof(File*), pointers_);
+        new_list(&global.pids, sizeof(int), integers_);
+        new_list(&global.pipes, sizeof(int), integers_);
 
-        File *input = new_file(NULL, in, 0);
-        File *output = new_file(NULL, out, 0);
+        File input = new_file(NULL, in, 0);
+        File output = new_file(NULL, out, 0);
 
         text = readline("minishell $> ");
-        // printf("text: %p\n", text);
         if(text)
             add_history(text);
 
         build_tokens(text);
         global.tokens.pos = 0;
-
-        evaluate(expr(), *input, *output);
+        Token **tokens =  (Token**)global.tokens.pointer;
+        while(tokens[global.tokens.pos]->type != end_)
+            evaluate(expr(), input, output);
         
         free(text);
         text = NULL;
 
         int status;
-        while(--global.pids.pos >= 0)
+        while(global.pids.pos > 0)
         {
-            int *pid_ptr = global.pids.pointer[global.pids.pos];
-            waitpid(*pid_ptr, &status, 0);
+            // int pid = global.pids.integers[global.pids.pos];
+            // waitpid(pid, &status, 0);
+            status = get_last_exit_code();
             ft_printf(out,"received status: %d\n", status);
         }
         free_list(&global.tokens);
         free_list(&global.pids);
         free_list(&global.files);
         free_list(&global.pipes);
-#endif
     }
+#endif
 }
