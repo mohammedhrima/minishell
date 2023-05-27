@@ -7,9 +7,21 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <dirent.h>
 #include <sys/wait.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+
+// macros
+#define SUCCESS 0
+#define NO_SUCH_FILE_OR_DIR 1
+#define PERMISSION_DENIED 1
+#define NOT_OPENED -200
+#define COMMAND_NOT_FOUND 127
+#define CTRL_C 2
+#define CTRL_SLASH 3
+
 typedef enum Type Type;
 typedef struct Token Token;
 typedef struct Token Value;
@@ -17,15 +29,16 @@ typedef struct Node Node;
 typedef struct File File;
 typedef struct List List;
 
+
 // types
 enum Type
 {
     start_ = 11,
-    integers_, pointers_,
+    integers_, pointers_, tokens_, nodes_,
     // =                      (        )
     assign_, identifier_, lparent_, rparent_,
-    //  <           >             <<       >>      |
-    redir_input, redir_output, heredoc_, append_, pipe_,
+    //  <           >             <<       >>      |      *
+    redir_input, redir_output, heredoc_, append_, pipe_, all_,
     // and or
     and_, or_,
     // built in
@@ -44,7 +57,7 @@ struct Token
     char *value;
     int start;
     int len;
-    pid_t process_id;
+    // pid_t process_id;
 };
 
 struct Node
@@ -64,12 +77,15 @@ struct File
 struct List
 {
     Type type;
-    
+#if 1
     union
     {
-        void **pointer;
+        void **pointers;
         int *integers;
     };
+#else
+    uintptr_t pointer;
+#endif
     size_t size;
     int pos;
     int len;
@@ -77,16 +93,18 @@ struct List
 
 struct
 {
-    List addresses;
-    List envirement;
-    List tokens;
-    List files;
+    // List addresses;
+    List envirement; // when get freed, make sur to free left and right with there token
+    List tokens; // must have type tokens
+    List fds;
     List pids;
-    List exist_status;
-    List pipes;
-    char **path;
+    // List exist_status;
+    // List pipes;
+    char **path; // handle if path is NULL
     char **env;
     int inside_pipe;
+    int inside_heredoc;
+    // int signum;
 } global;
 
 // macros
@@ -123,8 +141,9 @@ void    ft_putstr(int file_descriptor, char *str);
 void    ft_putnbr(int file_descriptor, long num);
 void    print_space(int file_descriptor, int len);
 void    ft_printf(int file_descriptor, char *fmt, ...);
-void    add_pointer_to_list(List *list, void *pointer);
-void    add_integer_to_list(List *list, int number);
+// void    add_pointer_to_list(List *list, void *pointer);
+// void    add_integer_to_list(List *list, int number);
+void add_to_list(List *list, void *value);
 void    ft_exit(int code);
 Node    *expr();        // expression
 Node    *and_or();          // ||
@@ -134,5 +153,8 @@ Node    *prime();       // files, command, argument, (), built in commands: echo
 Node *new_node(Token *token);
 char*   type_to_string(Type type);
 int get_last_exit_code();
+void handle_signal(int signum) ;
+void handle_heredoc_signal(int signum);
+
 
 #endif

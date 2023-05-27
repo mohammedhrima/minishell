@@ -1,0 +1,51 @@
++ handle *, then &&
+
++ * :
+    + create token type *
+    + call get getdir function,
+    + keep creating tokens with name of all files and folder in directory,
+    + creat token with type end*
+
+    + store command in left
+    + store elements of * on right
+    + call execute every time and give it the arguments + with of all elements everytime and execute them
+
+
++ protect if built in function failed
++ handle :  (ls && ls && ls) || ls
+
++ memory leak:
+    + every time in readline loop free by doing: create a function that takes List* as argument and free it
+    + be carefull token, has a value that must be freed
+    + node->token may also be type end_, so be carefull
+
++ ctrl + d in here doc must be handled
+
++ bonus:
+    && || 
+    * (will be handled using readir, opendir)
+
+- done:
+    + || &&:
+        they check last exit status code
+    + built in:
+        echo
+        cd
+        pwd
+        export
+        unset
+        env
+        exit
+    + redirection:
+        <  input
+        >  output
+        << heredoc
+        >> append to file
+
+
++ remove ft_printf att the end, keep printf instead
++ verify norm before pushing
++ check all opens, read, fork, opendir, readdir if they fail
++ set all pointers to NULL at beginning
++ add minishell to all error messages , example: "minishell: syntax error"
+

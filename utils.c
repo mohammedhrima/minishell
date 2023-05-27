@@ -11,7 +11,7 @@ char *type_to_string(Type type)
         {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, 
         {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"AND", and_}, 
         {"OR", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
-        {"EXIT", exit_}, {"END", end_}, 
+        {"EXIT", exit_}, {"END", end_}, {"ALL", all_},
         {0, 0}
     };
     for(int i = 0; lexic[i].value; i++)
@@ -60,15 +60,15 @@ void	ft_memset(void *pointer, int c, size_t len)
 void	*ft_memcpy(void *destination, void *source, size_t len)
 {
 	size_t	i;
-	char	*pointer1;
-	char	*pointer2;
+	unsigned char	*pointer1;
+	unsigned char	*pointer2;
 
 	if (!destination)
 		return (source);
 	if (!source)
 		return (destination);
-	pointer1 = (char *)destination;
-	pointer2 = (char *)source;
+	pointer1 = (unsigned char *)destination;
+	pointer2 = (unsigned char *)source;
 	i = 0;
 	while (i < len)
 	{
@@ -100,17 +100,17 @@ void    *ft_calloc(size_t count, size_t size)
 	return (new);
 }
 
-void *ft_realloc(void *pointer, size_t old_size ,size_t new_size)
+void *ft_realloc(void *pointer, size_t oldsize, size_t newsize)
 {
-    void *new;
-    if(pointer == NULL)
-        new = ft_calloc(1, new_size);
+    // ft_printf(out, "old: %d, new: %d\n", oldsize, newsize);
+    void *new = ft_calloc(1, newsize);
     if(pointer)
-    {
-        new = ft_calloc(1, new_size);
-        ft_memcpy(new, pointer, old_size);
+    {   
+        ft_memcpy(new, pointer, oldsize);
+        free(pointer);
     }
-    return new;
+    pointer = new;
+    return pointer;
 }
 
 // string methods
@@ -336,6 +336,7 @@ void ft_printf(int fd, char *fmt, ...)
                     case append_:
                     case and_:
                     case or_:
+                    case all_:
                         print_space(fd, space - ft_strlen(variable->value));
                         ft_putstr(fd, variable->value);
                         break;
