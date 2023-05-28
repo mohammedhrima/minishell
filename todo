@@ -1,15 +1,48 @@
+new plan:
+    how bash handle input:
+        1st loop:
+            1- check " and ' if arrent closed
+            2- check && || | if they aren't folowed by something
+            2- wait if none of them is closed
+
+        2nd loop:
+            1- tokenize: (build 1st array of tokens)
+
+        3rd loop: split tokens that way
+            1- command with it arguments (1st one always could be command, or built in)
+            the rest is arguments
+
+        4th loop: (build 2rd array of tokens)
+            1- whenever you find comand with name export add what after to env
+            2- whenever you find $ expand the value after it (in command or arguemnts)
+            3- whenever you find * expand it (in command or arguemnts)
+        
+        5th loop:
+            seperate with && and || and |
+            sepreate also with redirections
+
+        6th loop:
+            execute
+
++ ambiguous redirection error !!
+
 + handle *, then &&
 
-+ * :
-    + create token type *
-    + call get getdir function,
++ try using somewhere:
+    dev/random
+    dev/null
+
++ *:
+    + * is not expandable
+    + create token type star_start
+    + call get getdir
     + keep creating tokens with name of all files and folder in directory,
-    + creat token with type end*
+    + creat token with type star_end
 
     + store command in left
-    + store elements of * on right
+    + store elements of start on right
+    (maybe you should print the name)
     + call execute every time and give it the arguments + with of all elements everytime and execute them
-
 
 + protect if built in function failed
 + handle :  (ls && ls && ls) || ls
@@ -41,7 +74,6 @@
         >  output
         << heredoc
         >> append to file
-
 
 + remove ft_printf att the end, keep printf instead
 + verify norm before pushing

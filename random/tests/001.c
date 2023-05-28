@@ -40,6 +40,7 @@ void    *ft_calloc(size_t count, size_t size)
 		pointer[i] = 0;
 		i++;
 	}
+    add_to_list(&global.addresses, new);
 	return (new);
 }
 void *ft_realloc(void *pointer, size_t size)

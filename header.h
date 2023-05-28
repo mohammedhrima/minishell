@@ -22,6 +22,10 @@
 #define CTRL_C 2
 #define CTRL_SLASH 3
 
+#ifndef DEBUG
+#define DEBUG 1
+#endif
+
 typedef enum Type Type;
 typedef struct Token Token;
 typedef struct Token Value;
@@ -34,11 +38,11 @@ typedef struct List List;
 enum Type
 {
     start_ = 11,
-    integers_, pointers_, tokens_, nodes_,
+    integers_, pointers_,
     // =                      (        )
     assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |      *
-    redir_input, redir_output, heredoc_, append_, pipe_, all_,
+    redir_input, redir_output, heredoc_, append_, pipe_, star_beg, star_end,
     // and or
     and_, or_,
     // built in
@@ -93,18 +97,13 @@ struct List
 
 struct
 {
-    // List addresses;
+    List addresses;
     List envirement; // when get freed, make sur to free left and right with there token
     List tokens; // must have type tokens
     List fds;
     List pids;
-    // List exist_status;
-    // List pipes;
     char **path; // handle if path is NULL
-    char **env;
     int inside_pipe;
-    int inside_heredoc;
-    // int signum;
 } global;
 
 // macros
@@ -155,6 +154,8 @@ char*   type_to_string(Type type);
 int get_last_exit_code();
 void handle_signal(int signum) ;
 void handle_heredoc_signal(int signum);
-
+void clear_list(List *list);
+char *ft_readline(char *msg);
+void add_to_addresses(void *pointer);
 
 #endif

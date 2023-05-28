@@ -11,7 +11,7 @@ char *type_to_string(Type type)
         {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, 
         {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"AND", and_}, 
         {"OR", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
-        {"EXIT", exit_}, {"END", end_}, {"ALL", all_},
+        {"EXIT", exit_}, {"END", end_}, {"STAR BEG", star_beg}, {"STAR END", star_end},
         {0, 0}
     };
     for(int i = 0; lexic[i].value; i++)
@@ -26,12 +26,14 @@ char *type_to_string(Type type)
 void ft_exit(int code)
 {
     // make sure to free your shit before exiting
-    // address_pos--;
-    // while(address_pos >= 0)
-    // {
-    //     free((void*)(addresses[address_pos]));
-    //     address_pos--;
-    // }
+    int i = 0;
+    while(i < global.addresses.pos)
+    {
+        free(global.addresses.pointers[i]);
+        i++;
+    }
+    if(DEBUG == 0)
+        system("leaks a.out");
     exit(code);
 }
 
@@ -87,7 +89,7 @@ void    *ft_calloc(size_t count, size_t size)
 	size_t			i;
 
 	new = (void *)malloc(count * size);
-    // add_pointer_to_list(&global.addresses, new);
+    add_to_addresses(new);
 	if (!new)
 		return (NULL);
 	i = 0;
@@ -102,15 +104,10 @@ void    *ft_calloc(size_t count, size_t size)
 
 void *ft_realloc(void *pointer, size_t oldsize, size_t newsize)
 {
-    // ft_printf(out, "old: %d, new: %d\n", oldsize, newsize);
     void *new = ft_calloc(1, newsize);
     if(pointer)
-    {   
         ft_memcpy(new, pointer, oldsize);
-        free(pointer);
-    }
-    pointer = new;
-    return pointer;
+    return new;
 }
 
 // string methods
@@ -228,12 +225,22 @@ char *strjoin(char *string1, char *string2, char *string3)
     return res;
 }
 
-char *charjoin(char *string, char c)
+
+
+char *ft_readline(char *msg)
 {
-    char *res = ft_calloc(ft_strlen(string) + 2, sizeof(char));
-    if (string)
-        ft_strncpy(res, string, ft_strlen(string));
-    res[ft_strlen(res)] = c;
+    char *res = ft_calloc(2 , sizeof(char));
+    int i = 0;
+    char c = 1;
+    ft_putstr(out, msg);
+    while(c && c != '\n')
+    {
+        read(in, &c, sizeof(char));
+        res[i] = c;
+        res = ft_realloc(res, i + 1, i + 2);
+        i++;
+    }
+    // res[i - 1] = c;
     return res;
 }
 
@@ -336,7 +343,8 @@ void ft_printf(int fd, char *fmt, ...)
                     case append_:
                     case and_:
                     case or_:
-                    case all_:
+                    case star_beg:
+                    case star_end:
                         print_space(fd, space - ft_strlen(variable->value));
                         ft_putstr(fd, variable->value);
                         break;
@@ -391,7 +399,7 @@ void ft_printf(int fd, char *fmt, ...)
         i++;
     }
     va_end(ap);
-    if (fd == err)
-        ft_exit(1);
+    // if (fd == err)
+    //     ft_exit(1);
 #endif
 }
