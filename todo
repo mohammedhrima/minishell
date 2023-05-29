@@ -25,6 +25,7 @@ new plan:
             execute
 
 + ambiguous redirection error !!
++ expect filename after redirection symbol
 
 + handle *, then &&
 

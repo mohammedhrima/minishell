@@ -14,11 +14,15 @@
 #include <readline/history.h>
 
 // macros
+// error messages
 #define SUCCESS 0
 #define NO_SUCH_FILE_OR_DIR 1
 #define PERMISSION_DENIED 1
-#define NOT_OPENED -200
+#define AMBEGIOUS_REDIRECTION 1
+#define UNEXPECTED_ERROR 258
 #define COMMAND_NOT_FOUND 127
+// file descriptors
+#define NOT_OPENED -200
 #define CTRL_C 2
 #define CTRL_SLASH 3
 
@@ -60,8 +64,7 @@ struct Token
 
     char *value;
     int start;
-    int len;
-    // pid_t process_id;
+    int end;
 };
 
 struct Node
@@ -81,15 +84,13 @@ struct File
 struct List
 {
     Type type;
-#if 1
+
     union
     {
         void **pointers;
         int *integers;
     };
-#else
-    uintptr_t pointer;
-#endif
+
     size_t size;
     int pos;
     int len;
@@ -104,6 +105,7 @@ struct
     List pids;
     char **path; // handle if path is NULL
     int inside_pipe;
+    char** env;
 } global;
 
 // macros
@@ -145,9 +147,9 @@ void    ft_printf(int file_descriptor, char *fmt, ...);
 void add_to_list(List *list, void *value);
 void    ft_exit(int code);
 Node    *expr();        // expression
-Node    *and_or();          // ||
-// Node    *and();         // &&
+Node    *and_or();      // || &&
 Node    *pipe_node();   // |
+Node *redirection();    // < > << >> 
 Node    *prime();       // files, command, argument, (), built in commands: echo, cd, pwd, export, unset, env, exit
 Node *new_node(Token *token);
 char*   type_to_string(Type type);
