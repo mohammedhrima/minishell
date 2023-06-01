@@ -1,20 +1,23 @@
 #include "header.h"
 
-struct {
+struct
+{
     char *value;
     Type type;
 } symbol_lexic[] = {
-    {"<<", heredoc_}, {">>", append_}, {"<", redir_input}, {">", redir_output},
-    {"&&", and_}, {"||", or_}, {"(", lparent_}, {")", rparent_}, {"|", pipe_}, {0 , 0}
-};
+    {"<<", heredoc_}, {">>", append_}, {"<", redir_input}, 
+    {">", redir_output}, {"&&", and_}, {"||", or_}, 
+    {"(", lparent_}, {")", rparent_}, {"|", pipe_}, 
+    {"*", star_beg}, {0, 0}};
 
-struct {
-    char* value;
+struct
+{
+    char *value;
     Type type;
 } alpha_lexic[] = {
-    {"echo", echo_}, {"cd", cd_}, {"pwd", pwd_}, {"export", export_},
-    {"unset", unset_}, {"env", env_}, {"exit", exit_}, {0 , 0}
-};
+    {"echo", echo_}, {"cd", cd_}, {"pwd", pwd_}, 
+    {"export", export_}, {"unset", unset_}, 
+    {"env", env_}, {"exit", exit_}, {0, 0}};
 
 List *new_list(List *list, size_t size, Type type)
 {
@@ -23,7 +26,7 @@ List *new_list(List *list, size_t size, Type type)
     list->type = type;
     list->size = size;
 
-    if(list->type == pointers_ || list->type == tokens_ || list->type == nodes_)
+    if(list->type == pointers_)
         list->pointers = ft_calloc(list->len, list->size);
     if(list->type == integers_)
         list->integers = ft_calloc(list->len, list->size);
@@ -34,33 +37,12 @@ List *new_list(List *list, size_t size, Type type)
 void clear_list(List *list)
 {
     Type type = list->type;
-    if(type == integers_)
+    if (type == integers_)
         ft_memset(list->integers, 0, list->len * list->size);
-    else if(type == pointers_ || type == tokens_ || type == nodes_)
-    {
-        int i = 0;
-        while(i < list->pos)
-        {
-            if(type == nodes_)
-            {
-                Node *node = (Node*)list->pointers[i];
-                free(node->left);
-                free(node->right);
-            }
-            if(type == tokens_)
-            {
-                Token *tokens = (Token*)list->pointers[i];
-                free(tokens->value);
-            }
-            free(list->pointers[i]);
-            i++;
-        }
+    else if (type == pointers_)
         ft_memset(list->pointers, 0, list->len * list->size);
-    }
     else
-    {
-        ft_printf(err, "Error: Received unknown type to clear\n");
-    }
+        ft_printf(err, " \033[0;31mError: Received unknown type to clear\n\033[0m");
     list->pos = 0;
 }
 
@@ -85,7 +67,7 @@ void add_to_list(List *list, void *value)
 {
     if(list->type == integers_)
         list->integers[list->pos++] = *((int *)value);
-    if(list->type == pointers_ || list->type == nodes_ || list->type == tokens_)
+    if(list->type == pointers_)
         list->pointers[list->pos++] = value;
 
     if(list->pos + 10 > list->len)
@@ -95,6 +77,25 @@ void add_to_list(List *list, void *value)
             list->integers = ft_realloc(list->integers, list->pos * list->size, list->len * list->size);
         if(list->type == pointers_)
             list->pointers = ft_realloc(list->pointers, list->pos * list->size, list->len * list->size);
+    }
+}
+
+void add_to_addresses(void *pointer)
+{
+    if (global.addresses.len == 0)
+    {
+        global.addresses.pos = 0;
+        global.addresses.len = 100;
+        global.addresses.pointers = malloc(global.addresses.len * sizeof(void *));
+    }
+    global.addresses.pointers[global.addresses.pos++] = pointer;
+    if (global.addresses.pos + 10 > global.addresses.len)
+    {
+        global.addresses.len *= 2;
+        void *temporary = malloc(global.addresses.len * sizeof(void *));
+        ft_memcpy(temporary, global.addresses.pointers, global.addresses.pos * sizeof(void *));
+        free(global.addresses.pointers);
+        global.addresses.pointers = temporary;
     }
 }
 
@@ -129,26 +130,22 @@ void build_tokens(char *text)
         
         if(text[txt_pos] == '\0')
             break;
-        if(text[txt_pos] == '*' && (text[txt_pos + 1] == ' ' || text[txt_pos + 1] == 0))
+        if (text[txt_pos] == '*')
         {
-            add_to_list(&global.tokens, new_token(all_, text + txt_pos, 1));
+            add_to_list(&global.tokens, new_token(star_beg, text + txt_pos, 1));
             txt_pos++;
             char *new = getcwd(NULL, 0);
             DIR *curr_dir = opendir(new);
             free(new);
-            struct dirent* curr_dir_content;
-            
+            struct dirent *curr_dir_content;
             curr_dir_content = readdir(curr_dir);
-            while(curr_dir_content)
+            while (curr_dir_content)
             {
-                // printf("-> %s\n",curr_dir_content->d_name);
                 add_to_list(&global.tokens, new_token(identifier_, curr_dir_content->d_name, ft_strlen(curr_dir_content->d_name)));
-                // arguments[len] = curr_dir_content->d_name;
                 curr_dir_content = readdir(curr_dir);
-                // arguments = ft_realloc(arguments, len * sizeof(char*), (len + 2) * sizeof(char*));
-                // len++;
             }
-            add_to_list(&global.tokens, new_token(end_, NULL, 0));
+            add_to_list(&global.tokens, new_token(star_end, NULL, 0));
+            closedir(curr_dir);
             continue;
         }
         if(text[txt_pos] == ' ')
@@ -272,27 +269,27 @@ Node *prime()
     {
         Node *node = new_node(token);
         node->token->start = global.tokens.pos;
-        node->token->len++;
+        node->token->end++;
         skip(token->type);
         token = ((Token**)global.tokens.pointers)[global.tokens.pos];
         while(token->type == identifier_ || is_redirection(token->type)) // don't cahnge it will break redirection
         {
-            node->token->len++;
+            node->token->end++;
             skip(token->type);
             token = ((Token**)global.tokens.pointers)[global.tokens.pos];
         }
         // token = ((Token**)global.tokens.pointers)[global.tokens.pos];
-        if(token->type == all_)
+        if(token->type == star_beg)
         {
             Node *all = new_node(token);
             all->left = node;
             skip(token->type);
             all->token->start = global.tokens.pos;
             token = ((Token**)global.tokens.pointers)[global.tokens.pos];
-            while(token->type != end_)
+            while(token->type != star_end)
             {
                 skip(token->type);
-                all->token->len++;
+                all->token->end++;
                 token = ((Token**)global.tokens.pointers)[global.tokens.pos];
             }
             node = all;
@@ -652,45 +649,21 @@ Value *evaluate(Node *node, File input, File output)
             int len = 0;
             int pos = node->token->start;
             int i = 0;
-            while(i < node->token->len)
+            while(pos < node->token->end)
             {
                 Token *token =((Token**)global.tokens.pointers)[pos];
                 pos++;
                 if (token->type == identifier_)
                 {
                     arguments = ft_realloc(arguments, len * sizeof(char*), (len + 2) * sizeof(char*));
-                    arguments[len] = expand(token);
-                    // if(ft_strcmp(arguments[len], "*") == 0)
-                    // {
-                    //     // you will get here a memory leak protect it
-                    //     free(arguments[len]);
-                    //     ft_printf(out, "found * in len: %d\n", len);
-                    //     char *new = getcwd(NULL, 0);
-                    //     DIR *curr_dir = opendir(new);
-                    //     free(new);
-                    //     struct dirent* curr_dir_content;
-                    //     curr_dir_content = readdir(curr_dir);
-                    //     while(curr_dir_content)
-                    //     {
-                    //         printf("-> %s\n",curr_dir_content->d_name);
-                    //         arguments[len] = curr_dir_content->d_name;
-                    //         curr_dir_content = readdir(curr_dir);
-                    //         arguments = ft_realloc(arguments, len * sizeof(char*), (len + 2) * sizeof(char*));
-                    //         len++;
-                    //     }
-                        
-                    //     // exit(0);
-                    // }
-                    // else   
+                    arguments[len] = expand(token);  
                     len++;
-                    // ft_printf(out,"         %s from '%s'\n", arguments[len], token->value);
-                    // pos++;
                     arguments[len] = NULL;
                 }
                 else if(is_redirection(token->type))
                 {
                     Type type = token->type;
-                    i++;
+                    // i++;
                     // pos++;
                     token = ((Token**)global.tokens.pointers)[pos];
                     pos++;
@@ -718,7 +691,7 @@ Value *evaluate(Node *node, File input, File output)
                         // ft_printf(out, "heredoc\n");
                         char *delimiter = filename;
                         input =  new_file(ft_strdup("/tmp/heredoc"), open("/tmp/heredoc", O_WRONLY | O_CREAT | O_TRUNC, 0644), redir_output);
-                        global.inside_heredoc++;
+                        // global.inside_heredoc++;
                         int pid = fork();
                         if(pid == 0)
                         {
@@ -737,13 +710,13 @@ Value *evaluate(Node *node, File input, File output)
                         // signal(SIGQUIT, handle_signal);
                         int status;
                         waitpid(pid, &status , 0);
-                        global.inside_heredoc--;
+                        // global.inside_heredoc--;
                         close(input.fd);
                         input.type = redir_input;
                         input.fd = NOT_OPENED;
                     }
                 }
-                i++;
+                // i++;
             }
             if(arguments && arguments[0])
             {
@@ -972,7 +945,7 @@ int main(int argc, char **argv, char **envp)
     global.addresses.pointer = malloc(global.addresses.len * global.addresses.size);
 #endif
     new_list(&global.envirement, sizeof(Node*), pointers_);
-    new_list(&global.tokens, sizeof(Token*), tokens_);
+    new_list(&global.tokens, sizeof(Token*), pointers_);
     new_list(&global.pids, sizeof(int), integers_);
     new_list(&global.fds, sizeof(int), integers_);
 
@@ -1006,7 +979,7 @@ int main(int argc, char **argv, char **envp)
             add_history(text);
         
         build_tokens(text);
-        exit(0);
+        // exit(0);
         global.tokens.pos = 0;
 
         Token **tokens =  (Token**)global.tokens.pointers;
@@ -1021,7 +994,7 @@ int main(int argc, char **argv, char **envp)
         clear_list(&global.pids);
         clear_list(&global.fds);
         if(text == NULL)
-            break;
+            break; // exit if text is NULL
         free(text);
         text = NULL;
     }

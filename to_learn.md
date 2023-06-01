@@ -2,7 +2,7 @@
 + Parts:
     1- Learning the shell
     2- Configuring and the envirement
-    3- common tasks and essential tools
+    3- common tasks and essential tools 
     4- writing shell scripts
 
 + bash: Burn Again Shell

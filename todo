@@ -1,7 +1,10 @@
++ there some functions or redirction that get execute in main process:
+    in case fo  error fork a child process and exit from there
+
 new plan:
     how bash handle input:
         1st loop:
-            1- check " and ' if arrent closed
+            1- check " and ' if arrent closed 
             2- check && || | if they aren't folowed by something
             2- wait if none of them is closed
 

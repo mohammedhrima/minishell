@@ -1,6 +1,5 @@
 rm -rf a.out
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/mhrima/Desktop/minishell/readline/lib
-
 DEBUG=$1
 
 if [[ $DEBUG == 1 ]]; then

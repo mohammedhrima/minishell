@@ -13,7 +13,6 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-// macros
 // error messages
 #define SUCCESS 0
 #define NO_SUCH_FILE_OR_DIR 1
@@ -21,8 +20,14 @@
 #define AMBEGIOUS_REDIRECTION 1
 #define UNEXPECTED_ERROR 258
 #define COMMAND_NOT_FOUND 127
+
 // file descriptors
 #define NOT_OPENED -200
+#define in STDIN_FILENO
+#define out STDOUT_FILENO
+#define err STDERR_FILENO
+
+// signals
 #define CTRL_C 2
 #define CTRL_SLASH 3
 
@@ -46,7 +51,7 @@ enum Type
     // =                      (        )
     assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |      *
-    redir_input, redir_output, heredoc_, append_, pipe_, star_beg, star_end,
+    redir_input, redir_output, heredoc_, append_, pipe_, star_, //star_end,
     // and or
     and_, or_,
     // built in
@@ -84,13 +89,11 @@ struct File
 struct List
 {
     Type type;
-
     union
     {
         void **pointers;
         int *integers;
     };
-
     size_t size;
     int pos;
     int len;
@@ -99,19 +102,15 @@ struct List
 struct
 {
     List addresses;
-    List envirement; // when get freed, make sur to free left and right with there token
+    List envirement; // when get freed, make sure to free left and right with there token
     List tokens; // must have type tokens
     List fds;
     List pids;
     char **path; // handle if path is NULL
     int inside_pipe;
-    char** env;
+    // int inside_child_process;
+    char **env;
 } global;
-
-// macros
-#define in STDIN_FILENO
-#define out STDOUT_FILENO
-#define err STDERR_FILENO
 
 void    ft_printf(int file_descriptor, char *fmt, ...);
 int     ft_isnum(int c);
@@ -123,7 +122,6 @@ int     ft_isspace(int c);
 void    ft_memset(void *pointer, int c, size_t len);
 void    *ft_memcpy(void *destination, void *source, size_t len);
 void    *ft_calloc(size_t count, size_t size);
-// void    *ft_calloc2(size_t count, size_t size);
 void    *ft_realloc(void *pointer, size_t old_size, size_t new_size);
 int     ft_strlen(char *string);
 void    ft_strncpy(char *destination, char *source, int len);
@@ -142,22 +140,20 @@ void    ft_putstr(int file_descriptor, char *str);
 void    ft_putnbr(int file_descriptor, long num);
 void    print_space(int file_descriptor, int len);
 void    ft_printf(int file_descriptor, char *fmt, ...);
-// void    add_pointer_to_list(List *list, void *pointer);
-// void    add_integer_to_list(List *list, int number);
-void add_to_list(List *list, void *value);
+void    add_to_list(List *list, void *value);
 void    ft_exit(int code);
 Node    *expr();        // expression
 Node    *and_or();      // || &&
 Node    *pipe_node();   // |
-Node *redirection();    // < > << >> 
+Node    *redirection();    // < > << >> 
 Node    *prime();       // files, command, argument, (), built in commands: echo, cd, pwd, export, unset, env, exit
-Node *new_node(Token *token);
+Node    *new_node(Token *token);
 char*   type_to_string(Type type);
-int get_last_exit_code();
-void handle_signal(int signum) ;
-void handle_heredoc_signal(int signum);
-void clear_list(List *list);
-char *ft_readline(char *msg);
-void add_to_addresses(void *pointer);
+int     get_last_exit_code();
+void    handle_signal(int signum) ;
+void    handle_heredoc_signal(int signum);
+void    clear_list(List *list);
+char    *ft_readline(char *msg);
+void    add_to_addresses(void *pointer);
 
 #endif

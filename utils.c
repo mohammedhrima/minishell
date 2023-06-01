@@ -11,7 +11,7 @@ char *type_to_string(Type type)
         {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, 
         {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"AND", and_}, 
         {"OR", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
-        {"EXIT", exit_}, {"END", end_}, {"STAR BEG", star_beg}, {"STAR END", star_end},
+        {"EXIT", exit_}, {"END", end_}, {"STAR", star_}, //{"STAR END", star_end},
         {0, 0}
     };
     for(int i = 0; lexic[i].value; i++)
@@ -343,8 +343,10 @@ void ft_printf(int fd, char *fmt, ...)
                     case append_:
                     case and_:
                     case or_:
-                    case star_beg:
-                    case star_end:
+                    case star_:
+                    case lparent_:
+                    case rparent_:
+                    // case star_end:
                         print_space(fd, space - ft_strlen(variable->value));
                         ft_putstr(fd, variable->value);
                         break;

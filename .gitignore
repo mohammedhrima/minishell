@@ -1,16 +1,12 @@
 # Ignore the .gitignore file
 .gitignore
 
-# Ignore the a.out file in the current folder and all subfolders
 **/a.out
-
-# Ignore the .DS_Store file in any folder
 .DS_Store
-
-# Ignore the a.out.dSYM folder in the current folder and all subfolders
-a.out.dSYM
-
-out*
-/test
-
 ./vscode
+
+*out
+out*
+in*
+
+/test
