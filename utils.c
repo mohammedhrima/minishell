@@ -6,12 +6,13 @@ char *type_to_string(Type type)
         char *value;
         Type type;
     } lexic[] = {
-        {"ASSIGN", assign_},  {"IDENTIFIER", identifier_},
-        {"INPUT REDIR", redir_input}, {"OUTPUT REDIR", redir_output},  
-        {"HEREDOC", heredoc_}, {"APPEND_OUTPUT", append_}, {"PIPE", pipe_}, 
-        {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"AND", and_}, 
-        {"OR", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
-        {"EXIT", exit_}, {"END", end_}, {"STAR", star_}, //{"STAR END", star_end},
+        {"=", assign_},  {"token", identifier_},
+        {"<", redir_input}, {">", redir_output},  
+        {"<<", heredoc_}, {">>", append_}, {"|", pipe_}, 
+        {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"&&", and_}, 
+        {"||", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
+        {"EXIT", exit_}, {"END", end_}, {"*", star_}, //{"STAR END", star_end},
+        { "(",lparent_}, { ")",rparent_},
         {0, 0}
     };
     for(int i = 0; lexic[i].value; i++)
@@ -27,6 +28,15 @@ void ft_exit(int code)
 {
     // make sure to free your shit before exiting
     int i = 0;
+    while(i < global.fds.pos)
+    {
+        if(global.fds.integers[i] != out && global.fds.integers[i] != in)
+            close(global.fds.integers[i]);
+        i++;
+    }
+    while(global.pids.pos > 0)
+        get_last_exit_code();
+    i = 0;
     while(i < global.addresses.pos)
     {
         free(global.addresses.pointers[i]);
@@ -34,6 +44,7 @@ void ft_exit(int code)
     }
     if(DEBUG == 0)
         system("leaks a.out");
+    ft_printf(out, "from exit %d\n", code);
     exit(code);
 }
 
@@ -43,7 +54,7 @@ int ft_isupper(int c) { return (c >= 'A' && c <= 'Z'); }
 int ft_islower(int c) { return (c >= 'a' && c <= 'z'); }
 int ft_isalpha(int c) { return (ft_islower(c) || ft_isupper(c)); }
 int ft_isalphanum(int c) { return (ft_isalpha(c) || ft_isnum(c)); }
-int ft_isspace(int c) { return (c == '\n' || c == ' ' || c == '\v' || c == '\r' || c == '\t');}
+int	ft_isspace(int c){ return (c == '\t' || c == '\n' || c == '\f' || c == '\r' || c == '\v' || c == ' ');}
 
 // memes
 void	ft_memset(void *pointer, int c, size_t len)
@@ -225,8 +236,6 @@ char *strjoin(char *string1, char *string2, char *string3)
     return res;
 }
 
-
-
 char *ft_readline(char *msg)
 {
     char *res = ft_calloc(2 , sizeof(char));
@@ -264,7 +273,7 @@ char	*ft_strdup(char *string)
 	return (pointer);
 }
 
-// ft_itoa
+// ft_itoa ft_atoi
 char *ft_itoa(int num)
 {
     if(num < 10)
@@ -277,6 +286,24 @@ char *ft_itoa(int num)
     left = ft_realloc(left, ft_strlen(left), ft_strlen(left) + 2);
     left[ft_strlen(left)] = num % 10 + '0';;
     return left;
+}
+int ft_atoi(char *str) {
+    int result = 0;
+    int sign = 1;
+    int i = 0;
+
+    while (str[i] == ' ' || str[i] == '\t' || str[i] == '\n')
+        i++;
+
+    if (str[i] == '+' || str[i] == '-') {
+        sign = (str[i] == '-') ? -1 : 1;
+        i++;
+    }
+    while (str[i] >= '0' && str[i] <= '9') {
+        result = result * 10 + (str[i] - '0');
+        i++;
+    }
+    return sign * result;
 }
 
 // printf

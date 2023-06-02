@@ -38,6 +38,8 @@ Node *new_node(Token *token)
 {
     Node *new = ft_calloc(1, sizeof(Node));
     new->token = token;
+    // if(new->token)
+    //     ft_printf(out, "new  node with type %15t has token: '%k'\n", token->type, new->token);
     return new;
 }
 
@@ -121,8 +123,8 @@ void clear_list(List *list)
         ft_memset(list->integers, 0, list->len * list->size);
     else if (type == pointers_)
         ft_memset(list->pointers, 0, list->len * list->size);
-    else
-        ft_printf(err, " \033[0;31mError: Received unknown type to clear\n\033[0m");
+    // else
+    //     ft_printf(err, " \033[0;31mError: Received unknown type to clear\n\033[0m");
     list->pos = 0;
 }
 
@@ -271,7 +273,10 @@ void skip(Type type)
 {
     Token *token = ((Token **)global.tokens.pointers)[global.tokens.pos];
     if (token->type != type)
-        ft_printf(err, "Error Expected '%s'\n", type_to_string(type));
+    {    
+        ft_printf(out, "minishell: syntax error expected '%s'\n", type_to_string(type)); // must exit or something
+        ft_exit(SYNTAX_ERROR);
+    }
     global.tokens.pos++;
 }
 
@@ -282,7 +287,8 @@ Node *expr()
 
 Node *and_or()
 {
-    Token *token = ((Token **)global.tokens.pointers)[global.tokens.pos];
+    // Token *token = ((Token **)global.tokens.pointers)[global.tokens.pos];
+#if 0 
     if (token->type == or_)
     {
         Node *node = new_node(token);
@@ -319,7 +325,22 @@ Node *and_or()
         }
         return res;
     }
-    return (pipe_node());
+#else
+    Node *left = pipe_node();
+    Token *token = ((Token **)global.tokens.pointers)[global.tokens.pos];
+    while(token->type == and_ || token->type == or_)
+    {
+        Node *node = new_node(token);
+        skip(token->type);
+        node->left = left;
+        node->right = pipe_node();
+        left = node;
+        token = ((Token **)global.tokens.pointers)[global.tokens.pos];
+        // return node;
+    }
+#endif
+
+    return (left);
 }
 
 Node *pipe_node()
@@ -351,13 +372,14 @@ Node *prime()
     {
         Node *node = new_node(token);
         node->token->start = global.tokens.pos;
-        node->token->end++;
+        node->token->len++;
         skip(token->type);
         token = ((Token**)global.tokens.pointers)[global.tokens.pos];
+        
         // don't change it will break redirection
         while(token->type == identifier_ || token->type == star_ || is_redirection(token->type)) 
         {
-            node->token->end++;
+            node->token->len++;
             skip(token->type);
             token = ((Token**)global.tokens.pointers)[global.tokens.pos];
         }
@@ -368,32 +390,27 @@ Node *prime()
     if (token->type == lparent_)
     {
         Node *node = new_node(token);
-        node->token->start = global.tokens.pos;
-        node->token->end++;
         skip(token->type);
-
-        token = ((Token**)global.tokens.pointers)[global.tokens.pos];
-        while(token->type != rparent_ && token->type != end_)
-        {
-            node->token->end++;
-            skip(token->type);
-            token = ((Token**)global.tokens.pointers)[global.tokens.pos];
-        }
-        if(token->type != rparent_)
-            ft_printf(err, "Error Expected '%s'\n", type_to_string(rparent_));
+        node->left = expr();
         skip(rparent_);
-        node->token->end++;
-    
         token = ((Token**)global.tokens.pointers)[global.tokens.pos];
+        if(token->type == identifier_ || token->type == star_)
+        {
+            ft_printf(out, "minishell: syntax error unexpected '%s'\n", token->value); // must exit or something
+            ft_exit(SYNTAX_ERROR);
+        }
+        node->token->start = global.tokens.pos;
+        node->token->len++;
         while(token->type == identifier_ || token->type == star_ || is_redirection(token->type)) 
         {
-            node->token->end++;
+            node->token->len++;
             skip(token->type);
             token = ((Token**)global.tokens.pointers)[global.tokens.pos];
         }
-        // node->left = expr();
         return node;
     }
+    // if(token->type == end_)
+    //     return new_node(token);
     return NULL;
 }
 
@@ -434,26 +451,7 @@ void cd_func(int fd, char **arguments)
     if(arguments[0])
         chdir(arguments[0]); // verify if this little shit leaks
     else
-    {
-# if 0
-    chdir(getenv("HOME"));
-#else
-        int i = 0;
-        char *location = "/";
-        Node **envirement = (Node**)global.envirement.pointers;
-        while (envirement && envirement[i])
-        {
-            char *value = envirement[i]->left->token->value;
-            if(value && ft_strcmp(value, "HOME") == 0)
-            {
-                location = envirement[i]->right->token->value;
-                break;
-            }
-            i++;
-        }
-        chdir(location); // verify if this little shit leaks
-#endif
-    }
+        chdir(getenv("HOME")); // verify if it leaks
 }
 
 void pwd_func(int fd, char **arguments)
@@ -522,7 +520,8 @@ void env_func(int fd, char **arguments)
 
 void exit_func(int fd, char **arguments)
 {
-    ft_exit(0); // verify exit code after
+    ft_printf(out, "exit with %d\n", ft_atoi(arguments[0]));
+    ft_exit(ft_atoi(arguments[0])); // verify exit code after
 }
 
 void* built_in(char *cmd)
@@ -633,7 +632,7 @@ void open_file(File *file)
 {
     if(file->type == redir_input)
     {
-        ft_putstr(out, "redir input\n");
+        // ft_putstr(out, "redir input\n");
         if(file->fd == NOT_OPENED)
         {
             if(access(file->name, F_OK)) // check existance
@@ -652,7 +651,7 @@ void open_file(File *file)
     }
     if(file->type == redir_output)
     {
-        ft_putstr(out, "redir output\n");
+        // ft_putstr(out, "redir output\n");
         if(file->fd == NOT_OPENED)
         {
             if(access(file->name, F_OK) == 0 &&  access(file->name, W_OK)) // check if readable
@@ -666,7 +665,7 @@ void open_file(File *file)
     }
     if(file->type == append_)
     {
-        ft_putstr(out, "redir append\n");
+        // ft_putstr(out, "redir append\n");
         if(access(file->name, F_OK) == 0 &&  access(file->name, W_OK)) // check if readable
         {
             ft_printf(err, "minishell: %s: Permission denied\n", file->name);
@@ -680,16 +679,6 @@ void open_file(File *file)
 
 int get_last_exit_code()
 {
-# if 0
-    int *pids = global.pids.integers;
-    int status = 0;
-    if(global.pids.pos > 1)
-    {
-        waitpid(pids[global.pids.pos], &status, 0);
-        global.pids.pos--;
-    }
-    return(WEXITSTATUS(status));
-#else
     int *pids = global.pids.integers;
     int status = 0;
     static int res = 0;
@@ -700,11 +689,11 @@ int get_last_exit_code()
         return(res);
     }
     return res;
-#endif
 }
 
 Value *evaluate(Node *node, File input, File output)
 {
+    // ft_printf(out, "Evaluate %k\n", node->token);
     switch(node->token->type)
     {
         case identifier_:
@@ -713,12 +702,13 @@ Value *evaluate(Node *node, File input, File output)
         case heredoc_: 
         case append_:
         {
+            int pid = 0;
             char **arguments = NULL;
             int len = 0;
             int pos = node->token->start;
             int i = 0;
             int include_hidden = 0;
-            while(pos < node->token->end)
+            while(i < node->token->len)
             {
                 Token *token =((Token**)global.tokens.pointers)[pos];
                 pos++;
@@ -743,23 +733,20 @@ Value *evaluate(Node *node, File input, File output)
                     token = ((Token**)global.tokens.pointers)[pos];
                     if(token->type == star_)
                     {
-                        ft_printf(out, "minishell: *: ambiguous redirect\n");
-                        int pid = fork(); // to be check after
-                        if(pid == 0)
-                            ft_exit(AMBEGIOUS_REDIRECTION);
+                        ft_printf(out, "minishell: *: ambiguous redirection\n");
+                        ft_exit(AMBIGIOUS_REDIRECTION);
                         return NULL;
                     }
                     else if(token->type != identifier_)
                     {
                         ft_printf(out, "minishell: Unexpected symbol after redirection\n"); // this error message to be checked
-                        int pid = fork(); // to be check after
-                        if(pid == 0)
-                            ft_exit(UNEXPECTED_ERROR);
+                        ft_exit(UNEXPECTED_ERROR);
                         return NULL;
                     }
                     pos++;
+                    i++;
                     char *filename = expand(token);
-                    ft_printf(out, "is redirection type %s, has filename %s\n\n", type_to_string(type), filename);
+                    // ft_printf(out, "is redirection type %s, has filename %s\n\n", type_to_string(type), filename);
                     if(type == redir_input)
                         input = new_file(filename, NOT_OPENED, type); // be carefull here because maybe you will get back to stdin 
                     if(type == redir_output || type == append_)                    
@@ -781,7 +768,7 @@ Value *evaluate(Node *node, File input, File output)
                                 if(res)
                                     write(input.fd, res, ft_strlen(res));
                             }
-                            exit(SUCCESS);
+                            ft_exit(SUCCESS);
                         }
                         int status;
                         waitpid(pid, &status , 0);
@@ -790,6 +777,7 @@ Value *evaluate(Node *node, File input, File output)
                         input.fd = NOT_OPENED;
                     }
                 }
+                i++;
             }
             if(arguments && arguments[0])
             {
@@ -801,19 +789,20 @@ Value *evaluate(Node *node, File input, File output)
                     if(global.inside_pipe)
                     {
                         // ft_printf(out, "built in function, with forking\n");
-                        int pid = fork();
+                        pid = fork();
                         add_to_list(&global.pids, &pid);
-
                         if (pid == 0)
                         {  
-                            int *fds = global.fds.integers;
-                            int i = 0;
-                            while(i < global.fds.pos)
-                            {
-                                if(fds[i] != input.fd && fds[i] != output.fd && fds[i] != out && fds[i] != in)
-                                    close(fds[i]);
-                                i++;
-                            }
+                            // int *fds = global.fds.integers;
+                            // int i = 0;
+                            // while(i < global.fds.pos)
+                            // {
+                            //     if(fds[i] != input.fd && fds[i] != output.fd && fds[i] != out && fds[i] != in)
+                            //         close(fds[i]);
+                            //     i++;
+                            // }
+                            // while(global.pids.pos > 0) // can be removed
+                            //     get_last_exit_code();
                             if(input.type == redir_input)
                             {
                                 open_file(&input);
@@ -827,28 +816,32 @@ Value *evaluate(Node *node, File input, File output)
                                 close(output.fd);
                             }                       
                             func(out, &arguments[1]);
-                            exit(SUCCESS);
+                            ft_exit(SUCCESS);
                         }
                     }
                     else
                     {
-                        // ft_printf(out, "built in function, without forking\n");
-                        open_file(&output);
-                        func(output.fd ,&arguments[1]);
-                        int pid = fork();
-                        add_to_list(&global.pids, &pid);
-
-                        if(pid == 0)
+                        ft_printf(out, "built in function, without forking\n");
+                        // to check after
+                        if(input.type == redir_input)
                         {
-                            int *fds = global.fds.integers;
-                            int i = 0;
-                            while(i < global.fds.pos)
-                            {
-                                close(fds[i]);
-                                i++;
-                            }
-                            exit(SUCCESS);
+                            open_file(&input);
+                            dup2(input.fd, in);
+                            close(input.fd);
                         }
+                        if(output.type == redir_output || output.type == append_)
+                        {
+                            open_file(&output);
+                            dup2(output.fd, out);
+                            close(output.fd);
+                        } 
+                        // open_file(&output);
+                        func(output.fd ,&arguments[1]);
+                        // pid = fork();
+                        // add_to_list(&global.pids, &pid);
+
+                        // if(pid == 0)
+                        //     ft_exit(SUCCESS);
                     }
                 }
                 // executable
@@ -856,29 +849,30 @@ Value *evaluate(Node *node, File input, File output)
                 {
                     // char *full_command = get_command_path(arguments[0]);
                     arguments[0] = get_command_path(arguments[0]);
-
-                    ft_printf(out,"full command: %s\n    input : %F\n    output: %F\n       has arguments:\n", arguments[0], input, output);
-                    int i = 1;
-                    while(arguments[i])
-                    {
-                        ft_printf(out,"     %s\n", arguments[i]);
-                        i++;
-                    }
-                    int pid = fork();
+                    // ft_printf(out,"full command: %s\n    input : %F\n    output: %F\n       has arguments:\n", arguments[0], input, output);
+                    // int i = 1;
+                    // while(arguments[i])
+                    // {
+                    //     ft_printf(out,"     %s\n", arguments[i]);
+                    //     i++;
+                    // }
+                    
+                    pid = fork();
                     add_to_list(&global.pids, &pid);
 
                     if (pid == 0)
                     {  
+                        
                         if(input.type == redir_input)
                         {
-                            ft_printf(out, "call redirect input\n");
+                            // ft_printf(out, "call redirect input\n");
                             open_file(&input);
                             dup2(input.fd, in);
                             // close(input.fd);
                         }
                         if(output.type == redir_output || output.type == append_)
                         {
-                            ft_printf(out, "call redirect output\n");
+                            // ft_printf(out, "call redirect output\n");
                             open_file(&output);
                             dup2(output.fd, out);
                             // close(output.fd);
@@ -892,19 +886,23 @@ Value *evaluate(Node *node, File input, File output)
                                 close(fds[i]);
                             i++;
                         }
+                        while(global.pids.pos > 0)
+                            get_last_exit_code();
                         // when argument[1]=NULL, an error happen
                         // when argument[1] and you give &argument[0] as argument, somwthing enexpectabe happen
                         // check exit code if command not valid
                         if(execve(arguments[0], &arguments[0], global.env) != 0)
                         {
-                            ft_printf(out, "minishell: command not found\n"); // check if there  other errors
+                            ft_printf(out, "minishell: '%s' command not found\n", arguments[0]); // check if there  other errors
                             ft_exit(COMMAND_NOT_FOUND);
                         }
                         // exit(SUCCESS);
                     }
                 }                
             }
-            break;
+            // node->token->process_id = pid;
+            return node->token;
+            // break;
         }
         case pipe_:
         {
@@ -933,65 +931,91 @@ Value *evaluate(Node *node, File input, File output)
         case and_:
         case or_:
         {
+            // ft_printf(out, "%k has:\n    left %k\n    right %k\n\n",node->token, node->left->token, node->right->token);
+            // int status = get_last_exit_code();
+            // if(node->token->type == and_ && status == 0)
+            Value *value = evaluate(node->left, input, output);
             int status = get_last_exit_code();
-            if(node->token->type == and_ && status == 0)
-                return evaluate(node->left, input, output);
-            if(node->token->type == and_ && status != 0)
-            {
-                int pid = fork();
-                add_to_list(&global.pids, &pid);
-                if(pid == 0)
-                {
-                    int *fds = global.fds.integers;
-                    int i = 0;
-                    while(i < global.fds.pos)
-                    {
-                        close(fds[i]);
-                        i++;
-                    }
-                    exit(status);
-                }
-            }
-            if(node->token->type == or_ && status != 0)
-                return evaluate(node->left, input, output);
-            if(node->token->type == or_ && status == 0)
-            {
-                int pid = fork();
-                add_to_list(&global.pids, &pid);
-                if(pid == 0)
-                {
-                    int *fds = global.fds.integers;
-                    int i = 0;
-                    while(i < global.fds.pos)
-                    {
-                        close(fds[i]);
-                        i++;
-                    }
-                    exit(status);
-                }
-                return NULL;
-            }
-            break;
+            if(status == 0 && node->token->type == and_)
+                value = evaluate(node->right, input, output);
+            if(status != 0 && node->token->type == or_)
+                value = evaluate(node->right, input, output);
+            return value;
+            // break;
         }
         case lparent_:
         {
-            ft_printf(out, "found lparent\n");
-            if(output.fd != out)
-            {    
-                output.type = redir_output;
-                open_file(&output);
-                write(output.fd, "", 1);
-                close(output.fd);
-            }
+            // ft_printf(out, "Found lparent\n");
             int pos = node->token->start;
-            while(pos < node->token->end)
+            int i = 0;
+            while(i < node->token->len)
             {
                 Token *token =((Token**)global.tokens.pointers)[pos];
-                ft_printf(out,"%k\n", token);
                 pos++;
+                if(is_redirection(token->type)) // handle * here too
+                {
+                    Type type = token->type;
+                    token = ((Token**)global.tokens.pointers)[pos];
+                    if(token->type == star_)
+                    {
+                        ft_printf(out, "minishell: *: ambiguous redirection\n");
+                        ft_exit(AMBIGIOUS_REDIRECTION);
+                        return NULL;
+                    }
+                    else if(token->type != identifier_)
+                    {
+                        ft_printf(out, "minishell: Unexpected symbol after redirection\n"); // this error message to be checked
+                        ft_exit(UNEXPECTED_ERROR);
+                        return NULL;
+                    }
+                    pos++;
+                    i++;
+                    char *filename = expand(token);
+                    // ft_printf(out, "is redirection type %s, has filename %s\n\n", type_to_string(type), filename);
+                    if(type == redir_input)
+                        input = new_file(filename, NOT_OPENED, type); // be carefull here because maybe you will get back to stdin 
+                    if(type == redir_output || type == append_)                    
+                        output = new_file(filename, NOT_OPENED, type); // be carefull here because maybe you will get back to stdout
+                    if(type == heredoc_)
+                    {
+                        // print error if filename is NULL;
+                        char *delimiter = filename;
+                        input =  new_file(ft_strdup("/tmp/heredoc"), open("/tmp/heredoc", O_WRONLY | O_CREAT | O_TRUNC), redir_output);
+                        int pid = fork();
+                        if(pid == 0)
+                        {
+                            signal(SIGINT, handle_heredoc_signal);
+                            signal(SIGQUIT, handle_heredoc_signal);
+                            char *res = NULL;
+                            while((res == NULL || ft_strcmp(res, delimiter)))
+                            {
+                                res = readline("heredoc $> ");
+                                if(res)
+                                    write(input.fd, res, ft_strlen(res));
+                            }
+
+                            ft_exit(SUCCESS);
+                        }
+                        int status;
+                        waitpid(pid, &status , 0);
+                        close(input.fd);
+                        input.type = redir_input;
+                        input.fd = NOT_OPENED;
+                    }
+                }
+                i++;
             }
-            exit(0);
-            break;
+            if(output.type == redir_output && output.name)
+            {
+                // ft_printf(out, "Redir output\n");
+                open_file(&output);
+                write(output.fd, "", ft_strlen(""));
+                close(output.fd);
+                output.type = append_;
+                output.fd = NOT_OPENED;
+            }
+            return (evaluate(node->left, input, output));
+            // break;
         }
         default:
             ft_printf(err, "Error in evaluate\n");
@@ -1034,13 +1058,15 @@ int main(int argc, char **argv, char **envp)
         {
             text = ft_realloc(text, ft_strlen(text), ft_strlen(text) + 2);
             text[ft_strlen(text)] = '\n';
-            while (is_inclosed(text))
+            char *tmp = text;
+            while (tmp && is_inclosed(text))
             {
-                char *tmp = text;
-                text = ft_readline("> ");
-                tmp = ft_realloc(tmp, ft_strlen(tmp), ft_strlen(tmp) + ft_strlen(text) + 1);
-                ft_strcpy(tmp + ft_strlen(tmp), text);
-                text = tmp;
+                tmp = ft_readline("> ");
+                text = ft_realloc(text, ft_strlen(text), ft_strlen(text) + ft_strlen(tmp) + 1);
+                // free(text);
+                // text = ptr;
+                ft_strcpy(text + ft_strlen(text), tmp);
+                // text = tmp;
             }
             text[ft_strlen(text) - 1] = 0;
         }

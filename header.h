@@ -17,9 +17,10 @@
 #define SUCCESS 0
 #define NO_SUCH_FILE_OR_DIR 1
 #define PERMISSION_DENIED 1
-#define AMBEGIOUS_REDIRECTION 1
+#define AMBIGIOUS_REDIRECTION 1
 #define UNEXPECTED_ERROR 258
 #define COMMAND_NOT_FOUND 127
+#define SYNTAX_ERROR 258
 
 // file descriptors
 #define NOT_OPENED -200
@@ -51,7 +52,7 @@ enum Type
     // =                      (        )
     assign_, identifier_, lparent_, rparent_,
     //  <           >             <<       >>      |      *
-    redir_input, redir_output, heredoc_, append_, pipe_, star_, //star_end,
+    redir_input, redir_output, heredoc_, append_, pipe_, star_, redir_parent,
     // and or
     and_, or_,
     // built in
@@ -69,7 +70,8 @@ struct Token
 
     char *value;
     int start;
-    int end;
+    int len;
+    // int process_id;
 };
 
 struct Node
@@ -155,5 +157,5 @@ void    handle_heredoc_signal(int signum);
 void    clear_list(List *list);
 char    *ft_readline(char *msg);
 void    add_to_addresses(void *pointer);
-
+int ft_atoi(char *str) ;
 #endif

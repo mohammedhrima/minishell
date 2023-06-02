@@ -1,6 +1,9 @@
 + there some functions or redirction that get execute in main process:
     in case fo  error fork a child process and exit from there
 
++ verify exit ??
++ cd .., cd .
+
 new plan:
     how bash handle input:
         1st loop:
