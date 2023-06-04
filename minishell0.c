@@ -712,7 +712,7 @@ t_value *evaluate(t_node *node, t_file input, t_file output)
                     {
                         // print error if filename is NULL;
                         char *delimiter = filename;
-                        input =  new_file(ft_strdup("/tmp/heredoc"), open("/tmp/heredoc", O_WRONLY | O_CREAT | O_TRUNC), redir_output);
+                        input =  new_file(ft_strdup("~/tmp/heredoc"), open("~/tmp/heredoc", O_WRONLY | O_CREAT | O_TRUNC), redir_output);
                         int pid = fork();
                         if(pid == 0)
                         {
@@ -725,7 +725,7 @@ t_value *evaluate(t_node *node, t_file input, t_file output)
                                 if(res)
                                     write(input.fd, res, ft_strlen(res));
                             }
-                            // close(input.fd);
+                            close(input.fd);
 
                             ft_exit(SUCCESS);
                         }

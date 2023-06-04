@@ -32,8 +32,6 @@ void ft_exit(int code)
             close(global.fds.integers[i]);
         i++;
     }
-    // while(s_global.pids.pos > 0)
-    //     get_last_exit_code();
     i = 0;
     while(i < global.addresses.pos)
     {
@@ -42,7 +40,7 @@ void ft_exit(int code)
     }
     // if(DEBUG == 0)
     //     system("leaks a.out");
-    ft_printf(OUT, "call exit\n");
+    ft_printf(OUT, "call exit with code %d\n",code);
     exit(code);
 }
 
@@ -278,7 +276,7 @@ char *ft_itoa(int num)
     }
     char *left = ft_itoa(num / 10);
     left = ft_realloc(left, ft_strlen(left), ft_strlen(left) + 2);
-    left[ft_strlen(left)] = num % 10 + '0';;
+    left[ft_strlen(left)] = num % 10 + '0';
     return left;
 }
 int ft_atoi(char *str) {
@@ -286,6 +284,8 @@ int ft_atoi(char *str) {
     int sign = 1;
     int i = 0;
 
+    if(str == NULL)
+        return 0;
     while (str[i] == ' ' || str[i] == '\t' || str[i] == '\n')
         i++;
 
@@ -361,6 +361,7 @@ void ft_printf(int file_descriptor, char *fmt, ...)
                     case redir_input:
                     case redir_output:
                     case heredoc_:
+                    case append_:
                     case and_:
                     case or_:
                         print_space(file_descriptor, space - ft_strlen(variable->value));
