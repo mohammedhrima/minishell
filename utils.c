@@ -1,24 +1,21 @@
 #include "header.h"
 
-char *type_to_string(Type type)
+char *type_to_string(t_type type)
 {
-    struct {
-        char *value;
-        Type type;
-    } lexic[] = {
-        {"=", assign_},  {"token", identifier_},
-        {"<", redir_input}, {">", redir_output},  
-        {"<<", heredoc_}, {">>", append_}, {"|", pipe_}, 
-        {"ENV", env_}, {"ECHO", echo_}, {"PROCECESS ID", pid_}, {"&&", and_}, 
-        {"||", or_}, {"CD", cd_}, {"PWD", pwd_},  {"EXPORT", export_}, {"UNSET", unset_}, 
-        {"EXIT", exit_}, {"END", end_}, {"*", star_}, //{"STAR END", star_end},
-        { "(",lparent_}, { ")",rparent_},
-        {0, 0}
-    };
-    for(int i = 0; lexic[i].value; i++)
+    char **values;
+    t_type *types;
+    int i;
+
+    values = (char*[]){"=", "identifier", "<", ">", "<<",  ">>", "|", "env", "echo", "&&", "||", 
+    "cd", "pwd", "export", "unset", "exit", "end",  "*", "(", ")", NULL};
+    types = (t_type[]){assign_, identifier_, redir_input, redir_output, heredoc_, append_, 
+    pipe_, env_, echo_, and_, or_, cd_, pwd_, export_, unset_, exit_, end_, star_, lparent_, rparent_, 0};
+    i = 0;
+    while(types[i])
     {
-        if(lexic[i].type == type)
-            return lexic[i].value;
+        if(types[i] == type)
+            return values[i];
+        i++;
     }
     return NULL;
 }
@@ -26,25 +23,26 @@ char *type_to_string(Type type)
 // exit function
 void ft_exit(int code)
 {
-    // make sure to free your shit before exiting
-    int i = 0;
+    int i;
+
+    i = 0;
     while(i < global.fds.pos)
     {
-        if(global.fds.integers[i] != out && global.fds.integers[i] != in)
+        if(global.fds.integers[i] != OUT && global.fds.integers[i] != IN)
             close(global.fds.integers[i]);
         i++;
     }
-    while(global.pids.pos > 0)
-        get_last_exit_code();
+    // while(s_global.pids.pos > 0)
+    //     get_last_exit_code();
     i = 0;
     while(i < global.addresses.pos)
     {
         free(global.addresses.pointers[i]);
         i++;
     }
-    if(DEBUG == 0)
-        system("leaks a.out");
-    ft_printf(out, "from exit %d\n", code);
+    // if(DEBUG == 0)
+    //     system("leaks a.out");
+    ft_printf(OUT, "call exit\n");
     exit(code);
 }
 
@@ -125,8 +123,6 @@ void *ft_realloc(void *pointer, size_t oldsize, size_t newsize)
 int     ft_strlen(char *string){ int i = 0; while (string && string[i]) i++; return i;}
 void    ft_strncpy(char *destination, char *source, int len)
 {
-    if (destination == NULL || source == NULL)
-        ft_printf(err, "receive NULL in strncpy\n");
     int i = 0;
     while (source[i] && i < len)
     {
@@ -136,8 +132,6 @@ void    ft_strncpy(char *destination, char *source, int len)
 }
 void    ft_strcpy(char *destination, char *source)
 {
-    if (destination == NULL || source == NULL)
-        ft_printf(err, "receive NULL in strcpy\n");
     int i = 0;
     while (source[i])
     {
@@ -241,15 +235,15 @@ char *ft_readline(char *msg)
     char *res = ft_calloc(2 , sizeof(char));
     int i = 0;
     char c = 1;
-    ft_putstr(out, msg);
+
+    write(OUT, msg, ft_strlen(msg));
     while(c && c != '\n')
     {
-        read(in, &c, sizeof(char));
+        read(IN, &c, sizeof(char));
         res[i] = c;
         res = ft_realloc(res, i + 1, i + 2);
         i++;
     }
-    // res[i - 1] = c;
     return res;
 }
 
@@ -332,10 +326,10 @@ void print_space(int fd, int len)
         i++;
     }
 }
-void ft_printf(int fd, char *fmt, ...)
+void ft_printf(int file_descriptor, char *fmt, ...)
 {
-# if 1
     va_list ap;
+
     va_start(ap, fmt);
     int i = 0;
     while (fmt && fmt[i])
@@ -354,7 +348,7 @@ void ft_printf(int fd, char *fmt, ...)
             }
             if (fmt[i] == 'k')
             {
-                Token *variable = va_arg(ap, Token *);
+                t_token *variable = va_arg(ap, t_token *);
                 if (variable)
                 {
                     switch (variable->type)
@@ -363,72 +357,51 @@ void ft_printf(int fd, char *fmt, ...)
                     case identifier_:
                     case pipe_:
                     case end_:
-                    // case dollar_:
+                    case star_:
                     case redir_input:
                     case redir_output:
                     case heredoc_:
-                    case append_:
                     case and_:
                     case or_:
-                    case star_:
-                    case lparent_:
-                    case rparent_:
-                    // case star_end:
-                        print_space(fd, space - ft_strlen(variable->value));
-                        ft_putstr(fd, variable->value);
+                        print_space(file_descriptor, space - ft_strlen(variable->value));
+                        ft_putstr(file_descriptor, variable->value);
                         break;
                     default:
-                        ft_putstr(err, "Error in ft_printf: Unkown given token type: ");
-                        ft_putnbr(err, variable->type);
-                        ft_putstr(err, "\n");
+                        ft_putstr(ERR, "Unkown given token type: ");
+                        ft_putnbr(ERR, variable->type);
+                        ft_putstr(ERR, "\n");
                         ft_exit(0);
                         break;
                     }
                 }
                 else
-                    ft_putstr(fd, "(null token)");
+                    ft_putstr(file_descriptor, "(null token)");
             }
             if (fmt[i] == 't')
             {
-                char* type = type_to_string(va_arg(ap, Type));
-                print_space(fd, space - ft_strlen(type));
-                ft_putstr(fd, type);
-            }
-            if(fmt[i] == 'F')
-            {
-                File file = va_arg(ap, File);
-                if(file.name)
-                    ft_printf(out, "filename: %s, ", file.name);
-                if(file.fd >= 0)
-                    ft_printf(out, "fd: %d, ", file.fd);
-                else
-                    ft_printf(out, "fd: NOT OPENED, ");
-                if(file.type )
-                    ft_printf(out, "with type %s", type_to_string(file.type));
-            
+                char* type = type_to_string(va_arg(ap, t_type));
+                print_space(file_descriptor, space - ft_strlen(type));
+                ft_putstr(file_descriptor, type);
             }
             if (fmt[i] == 'd')
             {
                 int num = va_arg(ap, int);
-                ft_putnbr(fd, (long)num);
+                ft_putnbr(file_descriptor, (long)num);
             }
             if (fmt[i] == 'c')
             {
                 int c = va_arg(ap, int);
-                ft_putchar(fd, c);
+                ft_putchar(file_descriptor, c);
             }
             if (fmt[i] == 's')
             {
                 char *str = va_arg(ap, char *);
-                ft_putstr(fd, str);
+                ft_putstr(file_descriptor, str);
             }
         }
         else
-            ft_putchar(fd, fmt[i]);
+            ft_putchar(file_descriptor, fmt[i]);
         i++;
     }
     va_end(ap);
-    // if (fd == err)
-    //     ft_exit(1);
-#endif
 }

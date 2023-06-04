@@ -1,39 +1,15 @@
-+ there some functions or redirction that get execute in main process:
-    in case fo  error fork a child process and exit from there
++ there some functions or redirection that get execute in main process:
+    in case if error fork a child process and exit from there
 
-+ verify exit ??
-+ cd .., cd .
++ limit heredoc, exit status
++ try write to pipe instead of file
 
-new plan:
-    how bash handle input:
-        1st loop:
-            1- check " and ' if arrent closed 
-            2- check && || | if they aren't folowed by something
-            2- wait if none of them is closed
++ ctrl + C in heredoc
 
-        2nd loop:
-            1- tokenize: (build 1st array of tokens)
-
-        3rd loop: split tokens that way
-            1- command with it arguments (1st one always could be command, or built in)
-            the rest is arguments
-
-        4th loop: (build 2rd array of tokens)
-            1- whenever you find comand with name export add what after to env
-            2- whenever you find $ expand the value after it (in command or arguemnts)
-            3- whenever you find * expand it (in command or arguemnts)
-        
-        5th loop:
-            seperate with && and || and |
-            sepreate also with redirections
-
-        6th loop:
-            execute
++ errors in forks open opendir cwd ...
 
 + ambiguous redirection error !!
 + expect filename after redirection symbol
-
-+ handle *, then &&
 
 + try using somewhere:
     dev/random
@@ -54,37 +30,24 @@ new plan:
 + protect if built in function failed
 + handle :  (ls && ls && ls) || ls
 
-+ memory leak:
-    + every time in readline loop free by doing: create a function that takes List* as argument and free it
-    + be carefull token, has a value that must be freed
-    + node->token may also be type end_, so be carefull
-
 + ctrl + d in here doc must be handled
 
-+ bonus:
-    && || 
-    * (will be handled using readir, opendir)
-
-- done:
-    + || &&:
-        they check last exit status code
-    + built in:
-        echo
-        cd
-        pwd
-        export
-        unset
-        env
-        exit
-    + redirection:
-        <  input
-        >  output
-        << heredoc
-        >> append to file
-
++ * is not expandable
 + remove ft_printf att the end, keep printf instead
 + verify norm before pushing
 + check all opens, read, fork, opendir, readdir if they fail
 + set all pointers to NULL at beginning
 + add minishell to all error messages , example: "minishell: syntax error"
 
+try using somewhere:
+    dev/random
+    dev/null
+
++ do redirection even without command
+    + > out : will create a file (that's it)
+    + cmd >> out: will append to file / if it doesn't exists it will create it
+
++ remove ft_printf with all it's sub functions
++ verify code line by line
++ tab CTRL+V then TAB
++ cat << close | grep "a" | wc -la

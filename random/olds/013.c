@@ -19,8 +19,6 @@ t_node	*new_node(t_token *token)
 
 	new = ft_calloc(1, sizeof(t_node));
 	new->token = token;
-	if(new->token)
-        ft_printf(OUT, "new  node with type %6t has token: '%k'\n", token->type, new->token);
 	return (new);
 }
 
@@ -30,17 +28,13 @@ t_token	*new_token(t_type type, char *source, int len)
 
 	new = ft_calloc(1, sizeof(t_token));
 	new->type = type;
-	ft_printf(OUT, "new token with type %6t ", new->type);
-    if (source)
-    {
-        new->value = ft_calloc(len + 1, sizeof(char));
-        ft_strncpy(new->value, source, len);
-        ft_printf(OUT, "has value: '%k'", new);
-    }
-    ft_printf(OUT, "\n");
+	if (source)
+	{
+		new->value = ft_calloc(len + 1, sizeof(char));
+		ft_strncpy(new->value, source, len);
+	}
 	return (new);
-}
-
+};
 t_file	new_file(char *name, int fd, t_type type)
 {
 	t_file	new;
@@ -48,7 +42,7 @@ t_file	new_file(char *name, int fd, t_type type)
 	new.name = name;
 	new.fd = fd;
 	new.type = type;
-	add_to_list(&global.fds, &new.fd);
+	add_to_list(&s_global.fds, &new.fd);
 	return (new);
 }
 
@@ -56,33 +50,26 @@ void	handle_signal(int signum)
 {
 	if (signum == CTRL_C)
 	{
-		printf("\n");
+		ft_printf(OUT, "\n");
 		rl_replace_line("", 0);
 		rl_on_new_line();
 		rl_redisplay();
 	}
 	if (signum == CTRL_SLASH)
 	{
-		printf("");
+		ft_printf(OUT, "");
 		rl_replace_line("", 0);
 		rl_on_new_line();
 		rl_redisplay();
 	}
 }
-
 void	handle_heredoc_signal(int signum)
 {
 	if (signum == CTRL_C)
-	{
-		printf("\n");
-		rl_replace_line("", 0);
-		rl_on_new_line();
-		rl_redisplay();
 		ft_exit(SUCCESS);
-	}
 	if (signum == CTRL_SLASH)
 	{
-		printf("");
+		ft_printf(OUT, "");
 		rl_replace_line("", 0);
 		rl_on_new_line();
 		rl_redisplay();
@@ -134,7 +121,7 @@ void	build_envirement(char **envp)
 		node->left->token->value = array[0];
 		node->right = new_node(new_token(identifier_, NULL, 0));
 		node->right->token->value = array[1];
-		add_to_list(&global.envirement, node);
+		add_to_list(&s_global.envirement, node);
 		i++;
 	}
 }
@@ -171,28 +158,27 @@ void	add_to_addresses(void *pointer)
 {
 	void	*temporary;
 
-	if (global.addresses.len == 0)
+	if (s_global.addresses.len == 0)
 	{
-		global.addresses.pos = 0;
-		global.addresses.len = 100;
-		global.addresses.pointers = malloc(global.addresses.len
+		s_global.addresses.pos = 0;
+		s_global.addresses.len = 100;
+		s_global.addresses.pointers = malloc(s_global.addresses.len
 				* sizeof(void *));
 	}
-	global.addresses.pointers[global.addresses.pos++] = pointer;
-	if (global.addresses.pos + 10 > global.addresses.len)
+	s_global.addresses.pointers[s_global.addresses.pos++] = pointer;
+	if (s_global.addresses.pos + 10 > s_global.addresses.len)
 	{
-		global.addresses.len *= 2;
-		temporary = malloc(global.addresses.len * sizeof(void *));
-		ft_memcpy(temporary, global.addresses.pointers, global.addresses.pos
+		s_global.addresses.len *= 2;
+		temporary = malloc(s_global.addresses.len * sizeof(void *));
+		ft_memcpy(temporary, s_global.addresses.pointers, s_global.addresses.pos
 				* sizeof(void *));
-		free(global.addresses.pointers);
-		global.addresses.pointers = temporary;
+		free(s_global.addresses.pointers);
+		s_global.addresses.pointers = temporary;
 	}
 }
 
 void	build_tokens(char *text)
 {
-	ft_printf(OUT, "Call build tokens\n\n");
 	int				txt_pos;
 	int				start;
 	int				single_quotes;
@@ -213,7 +199,7 @@ void	build_tokens(char *text)
 			break ;
 		if (text[txt_pos] == '*')
 		{
-			add_to_list(&global.tokens, new_token(star_, text + txt_pos, 1));
+			add_to_list(&s_global.tokens, new_token(star_, text + txt_pos, 1));
 			txt_pos++;
 			new = getcwd(NULL, 0);
 			curr_dir = opendir(new);
@@ -221,7 +207,7 @@ void	build_tokens(char *text)
 			curr_dir_content = readdir(curr_dir);
 			while (curr_dir_content)
 			{
-				add_to_list(&global.tokens, new_token(identifier_,
+				add_to_list(&s_global.tokens, new_token(identifier_,
 							curr_dir_content->d_name,
 							ft_strlen(curr_dir_content->d_name)));
 				curr_dir_content = readdir(curr_dir);
@@ -229,30 +215,31 @@ void	build_tokens(char *text)
 			closedir(curr_dir);
 			continue ;
 		}
-		if (ft_isspace(text[txt_pos]))
+		if (text[txt_pos] == ' ')
 		{
 			start = txt_pos;
-			while (ft_isspace(text[txt_pos]))
+			while (text[txt_pos] == ' ')
 				txt_pos++;
 			continue ;
 		}
 		i = 0;
 		type = 0;
-		while (global.values[i])
+		while (s_global.values[i])
 		{
-			if (ft_strncmp(global.values[i], &text[txt_pos],
-					ft_strlen(global.values[i])) == 0)
+			if (ft_strncmp(s_global.values[i], &text[txt_pos],
+					ft_strlen(s_global.values[i])) == 0)
 			{
 				start = txt_pos;
-				type = global.types[i];
-				txt_pos += ft_strlen(global.values[i]);
-				break;
+				type = s_global.types[i];
+				txt_pos += ft_strlen(s_global.values[i]);
+				break ;
 			}
 			i++;
 		}
 		if (type)
 		{
-			add_to_list(&global.tokens, new_token(type, text + start, txt_pos - start));
+			add_to_list(&s_global.tokens, new_token(type, text + start, txt_pos
+						- start));
 			continue ;
 		}
 		start = txt_pos;
@@ -268,23 +255,24 @@ void	build_tokens(char *text)
 				break ;
 			txt_pos++;
 		}
-		add_to_list(&global.tokens, new_token(identifier_, text + start, txt_pos
+		add_to_list(&s_global.tokens, new_token(identifier_, text + start, txt_pos
 					- start));
 	}
-	add_to_list(&global.tokens, new_token(end_, NULL, 0));
+	add_to_list(&s_global.tokens, new_token(end_, NULL, 0));
 }
 
 void	skip(t_type type)
 {
 	t_token	*token;
 
-	token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+	token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 	if (token->type != type)
 	{
-		printf("minishell: syntax error expected '%s'\n", type_to_string(type));
+		ft_printf(OUT, "minishell: syntax error expected '%s'\n",
+				type_to_string(type));
 		ft_exit(SYNTAX_ERROR);
 	}
-	global.tokens.pos++;
+	s_global.tokens.pos++;
 }
 
 t_node	*expr(void)
@@ -299,7 +287,7 @@ t_node	*and_or(void)
 	t_node	*node;
 
 	left = pipe_node();
-	token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+	token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 	while (token->type == and_ || token->type == or_)
 	{
 		node = new_node(token);
@@ -307,7 +295,7 @@ t_node	*and_or(void)
 		node->left = left;
 		node->right = pipe_node();
 		left = node;
-		token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+		token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 	}
 	return (left);
 }
@@ -319,7 +307,7 @@ t_node	*pipe_node(void)
 	t_node	*node;
 
 	left = prime();
-	token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+	token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 	while (token->type == pipe_)
 	{
 		node = new_node(token);
@@ -327,7 +315,7 @@ t_node	*pipe_node(void)
 		node->left = left;
 		node->right = prime();
 		left = node;
-		token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+		token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 	}
 	return (left);
 }
@@ -343,21 +331,21 @@ t_node	*prime(void)
 	t_token	*token;
 	t_node	*node;
 
-	token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+	token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 	if (token->type == identifier_ || token->type == star_
 		|| is_redirection(token->type))
 	{
 		node = new_node(token);
-		node->token->start = global.tokens.pos;
+		node->token->start = s_global.tokens.pos;
 		node->token->len++;
 		skip(token->type);
-		token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+		token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 		while (token->type == identifier_ || token->type == star_
 			|| is_redirection(token->type))
 		{
 			node->token->len++;
 			skip(token->type);
-			token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+			token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 		}
 		return (node);
 	}
@@ -367,20 +355,21 @@ t_node	*prime(void)
 		skip(token->type);
 		node->left = expr();
 		skip(rparent_);
-		token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+		token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 		if (token->type == identifier_ || token->type == star_)
 		{
-			printf("minishell: syntax error unexpected '%s'\n", token->value);
+			ft_printf(OUT, "minishell: syntax error unexpected '%s'\n",
+					token->value);
 			ft_exit(SYNTAX_ERROR);
 		}
-		node->token->start = global.tokens.pos;
+		node->token->start = s_global.tokens.pos;
 		node->token->len++;
 		while (token->type == identifier_ || token->type == star_
 			|| is_redirection(token->type))
 		{
 			node->token->len++;
 			skip(token->type);
-			token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
+			token = ((t_token **)s_global.tokens.pointers)[s_global.tokens.pos];
 		}
 		return (node);
 	}
@@ -392,12 +381,12 @@ char	*get_command_path(char *cmd)
 	char	*res;
 	int		i;
 
-	if (cmd == NULL || ft_strchr(cmd, '/') || ft_strlen(cmd) == 0)
+	if (cmd == NULL || ft_strchr(cmd, '/'))
 		return (cmd);
 	i = 0;
-	while (global.path && global.path[i])
+	while (s_global.path && s_global.path[i])
 	{
-		res = strjoin(global.path[i], "/", cmd);
+		res = strjoin(s_global.path[i], "/", cmd);
 		if (access(res, F_OK) == 0 && access(res, X_OK) == 0)
 			return (res);
 		i++;
@@ -405,7 +394,7 @@ char	*get_command_path(char *cmd)
 	return (cmd);
 }
 
-void	echo_func(char **arguments)
+void	echo_func(int fd, char **arguments)
 {
 	int	print_new_line;
 	int	i;
@@ -416,37 +405,31 @@ void	echo_func(char **arguments)
 		if (i == 0 && ft_strcmp(arguments[i], "-n") == 0)
 			print_new_line = 0;
 		else
-			printf("%s", arguments[i]);
+			ft_printf(fd, "%s", arguments[i]);
 		i++;
 	}
 	if (print_new_line)
-		printf("\n");
+		ft_printf(fd, "\n");
 }
 
-void	cd_func(char **arguments)
+void	cd_func(int fd, char **arguments)
 {
 	if (arguments[0])
-	{	
-		ft_printf(OUT, "CD has arguments\n");
 		chdir(arguments[0]); // verify if this little shit leaks
-	}
 	else
-	{
-		ft_printf(OUT, "CD has no arguments\n");
 		chdir(getenv("HOME")); // verify if it leaks
-	}
 }
 
-void	pwd_func(char **arguments)
+void	pwd_func(int fd, char **arguments)
 {
 	char	*new;
 
 	new = getcwd(NULL, 0);
-	printf("%s\n", new);
+	ft_printf(fd, "%s\n", new);
 	free(new);
 }
 
-void	export_func(char **arguments)
+void	export_func(int fd, char **arguments)
 {
 	char	**array;
 	t_node	*node;
@@ -461,17 +444,17 @@ void	export_func(char **arguments)
 		node->left->token->value = array[0];
 		node->right = new_node(new_token(identifier_, NULL, 0));
 		node->right->token->value = array[1];
-		add_to_list(&global.envirement, node);
+		add_to_list(&s_global.envirement, node);
 		return ;
 	}
 	else
 	{
 		i = 0;
-		envirement = (t_node **)global.envirement.pointers;
+		envirement = (t_node **)s_global.envirement.pointers;
 		while (envirement && envirement[i])
 		{
 			if (envirement[i]->left->token->value)
-				printf("declare -x %s=\"%s\"\n",
+				ft_printf(fd, "declare -x %s=\"%s\"\n",
 						envirement[i]->left->token->value,
 						envirement[i]->right->token->value);
 			i++;
@@ -479,13 +462,13 @@ void	export_func(char **arguments)
 	}
 }
 
-void	unset_func(char **argument)
+void	unset_func(int fd, char **argument)
 {
 	int		i;
 	t_node	**envirement;
 	char	*value;
 
-	envirement = (t_node **)global.envirement.pointers;
+	envirement = (t_node **)s_global.envirement.pointers;
 	i = 0;
 	while (envirement && envirement[i])
 	{
@@ -502,25 +485,26 @@ void	unset_func(char **argument)
 	}
 }
 
-void	env_func(char **arguments)
+void	env_func(int fd, char **arguments)
 {
 	int		i;
 	t_node	**envirement;
 
-	envirement = (t_node **)global.envirement.pointers;
+	envirement = (t_node **)s_global.envirement.pointers;
 	i = 0;
 	while (envirement[i])
 	{
 		if (envirement[i]->left->token->value)
-			printf("%s=%s\n", envirement[i]->left->token->value, envirement[i]->right->token->value);
+			ft_printf(fd, "%s=%s\n", envirement[i]->left->token->value,
+					envirement[i]->right->token->value);
 		i++;
 	}
 }
 
-void	exit_func(char **arguments)
+void	exit_func(int fd, char **arguments)
 {
 	// to be verified because it's not working properly
-	printf("exit with %d\n", ft_atoi(arguments[0]));
+	ft_printf(OUT, "exit with %d\n", ft_atoi(arguments[0]));
 	ft_exit(ft_atoi(arguments[0])); // verify exit code after
 }
 
@@ -548,7 +532,7 @@ char	*get_var(char *name)
 	int		i;
 	t_node	**nodes;
 
-	nodes = (t_node **)global.envirement.pointers;
+	nodes = (t_node **)s_global.envirement.pointers;
 	i = 0;
 	if (ft_strcmp(name, "?") == 0)
 		return (ft_itoa(get_last_exit_code()));
@@ -561,7 +545,7 @@ char	*get_var(char *name)
 	return ("");
 }
 
-char	*expand(char *value)
+char	*expand(t_token *token)
 {
 	int		j;
 	char	*var;
@@ -570,11 +554,13 @@ char	*expand(char *value)
 	int		i;
 	int		single_quotes;
 	int		double_quotes;
+	char	*value;
 
-	res = "";
+	res = NULL;
 	i = 0;
 	single_quotes = 0;
 	double_quotes = 0;
+	value = token->value;
 	while (value && value[i])
 	{
 		if (value[i] == '\'')
@@ -599,16 +585,16 @@ char	*expand(char *value)
 			}
 			i++;
 		}
-		else if (value[i] == '$')
+		else if (token->value[i] == '$')
 		{
 			if (double_quotes || !single_quotes)
 			{
 				i++;
 				j = i;
-				while (value[j] && !ft_strchr(" \"", value[j]))
+				while (token->value[j] && !ft_strchr(" \"", token->value[j]))
 					j++;
 				var = ft_calloc(j - i + 1, sizeof(char));
-				ft_strncpy(var, value + i, j - i);
+				ft_strncpy(var, token->value + i, j - i);
 				to_add = get_var(var);
 				res = ft_realloc(res, ft_strlen(res), ft_strlen(res)
 						+ ft_strlen(to_add) + 2);
@@ -618,7 +604,7 @@ char	*expand(char *value)
 			else if (single_quotes)
 			{
 				res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2);
-				res[ft_strlen(res)] = value[i];
+				res[ft_strlen(res)] = token->value[i];
 				i++;
 			}
 		}
@@ -638,12 +624,13 @@ void	open_file(t_file *file)
 	{
 		if (access(file->name, F_OK))
 		{
-			printf("minishell: %s No such file or directory\n", file->name);
+			ft_printf(OUT, "minishell: %s: No such file or directory\n",
+					file->name);
 			ft_exit(NO_SUCH_FILE_OR_DIR);
 		}
 		else if (access(file->name, R_OK))
 		{
-			printf("minishell: %s Permission denied\n", file->name);
+			ft_printf(OUT, "minishell: %s: Permission denied\n", file->name);
 			ft_exit(PERMISSION_DENIED);
 		}
 		else
@@ -653,7 +640,7 @@ void	open_file(t_file *file)
 	{
 		if (access(file->name, F_OK) == 0 && access(file->name, W_OK))
 		{
-			printf("minishell: %s Permission denied\n", file->name);
+			ft_printf(OUT, "minishell: %s: Permission denied\n", file->name);
 			ft_exit(PERMISSION_DENIED);
 		}
 		else
@@ -663,7 +650,7 @@ void	open_file(t_file *file)
 	{
 		if (access(file->name, F_OK) == 0 && access(file->name, W_OK))
 		{
-			printf("minishell: %s Permission denied\n", file->name);
+			ft_printf(OUT, "minishell: %s: Permission denied\n", file->name);
 			ft_exit(PERMISSION_DENIED);
 		}
 		else
@@ -677,12 +664,12 @@ int	get_last_exit_code(void)
 	int			status;
 	static int	res;
 
-	pids = global.pids.integers;
+	pids = s_global.pids.integers;
 	status = 0;
 	res = 0;
-	if (global.pids.pos > 0)
+	if (s_global.pids.pos > 0)
 	{
-		waitpid(pids[--global.pids.pos], &status, 0);
+		waitpid(pids[s_global.pids.pos--], &status, 0);
 		res = WEXITSTATUS(status);
 		return (res);
 	}
@@ -691,7 +678,6 @@ int	get_last_exit_code(void)
 
 t_value	*evaluate(t_node *node, t_file input, t_file output)
 {
-	ft_printf(OUT, "Evaluate %k\n", node->token);
 	t_type	type;
 	t_token	*token;
 	t_value	*value;
@@ -707,7 +693,6 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 	char	*filename;
 	char	*delimiter;
 	char	*res;
-	char	*heredoc_text;
 	int		fd[2];
 	int		status;
 
@@ -724,101 +709,86 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 		include_hidden = 0;
 		while (i < node->token->len)
 		{
-			token = ((t_token **)global.tokens.pointers)[pos];
+			token = ((t_token **)s_global.tokens.pointers)[pos];
 			pos++;
 			if (token->type == identifier_ || token->type == star_)
 			{
 				if (token->type == star_)
 				{
 					pos++;
-					token = ((t_token **)global.tokens.pointers)[pos];
+					token = ((t_token **)s_global.tokens.pointers)[pos];
 				}
-				arguments = ft_realloc(arguments, len * sizeof(char *), (len + 2) * sizeof(char *));
-				argument = expand(token->value);
-				if(argument && (ft_strcmp(argument, ".") == 0 || ft_strcmp(argument, "..") == 0))
+				arguments = ft_realloc(arguments, len * sizeof(char *), (len
+							+ 2) * sizeof(char *));
+				argument = expand(token);
+				if (argument[0] != '.' || (argument[0] == '.'
+						&& include_hidden))
 					arguments[len++] = argument;
-				else if(argument && argument[0] == '.')
-				{	
-					if(include_hidden)
-						arguments[len++] = argument;
-				}
-				else
-					arguments[len++] = argument;
+				if (arguments[len - 1] && arguments[len - 1][0] == '-'
+					&& ft_strchr(arguments[len - 1], '-'))
+					include_hidden = 1;
 				arguments[len] = NULL;
 			}
 			else if (is_redirection(token->type)) // handle * here too
 			{
 				type = token->type;
-				token = ((t_token **)global.tokens.pointers)[pos];
+				token = ((t_token **)s_global.tokens.pointers)[pos];
 				if (token->type == star_)
 				{
-					printf("minishell: * ambiguous redirection\n");
+					ft_printf(OUT, "minishell: *: ambiguous redirection\n");
 					ft_exit(AMBIGIOUS_REDIRECTION);
 				}
 				else if (token->type != identifier_)
 				{
-					printf("minishell: Unexpected symbol after redirection\n");
+					ft_printf(OUT, "minishell: Unexpected symbol after redirection\n");
 					ft_exit(UNEXPECTED_ERROR);
 				}
 				pos++;
 				i++;
-				filename = expand(token->value);
+				filename = expand(token);
 				if (type == redir_input)
 					input = new_file(filename, NOT_OPENED, type);
 				if (type == redir_output || type == append_)
 					output = new_file(filename, NOT_OPENED, type);
 				if (type == heredoc_)
 				{
-					delimiter = filename;				
-					int fd[2];
-					pipe(fd); // check if it fails
-					
-					input = new_file(NULL, fd[0], redir_input);
-					new_file(NULL, fd[1], redir_output);
-
+					delimiter = filename;
+					input = new_file(ft_strdup("/tmp/heredoc"),
+										open("/tmp/heredoc",
+												O_WRONLY | O_CREAT | O_TRUNC),
+										redir_output);
 					pid = fork();
-					add_to_list(&global.pids, &pid);
-					
 					if (pid == 0)
 					{
 						signal(SIGINT, handle_heredoc_signal);
 						signal(SIGQUIT, handle_heredoc_signal);
 						res = NULL;
-						while (res == NULL || ft_strcmp(res, delimiter))
+						while ((res == NULL || ft_strcmp(res, delimiter)))
 						{
-							// dup2(fd[1], OUT); // don't use this one because line "heredoc $>" will be written there
 							res = readline("heredoc $> ");
-							if (res && ft_strcmp(res, delimiter))
-							{
-								heredoc_text = expand(res);
-								write(fd[1], heredoc_text, ft_strlen(heredoc_text));
-								write(fd[1], "\n", 1);
-							}
-						}
-						i = 0;
-						while(i < global.fds.pos)
-						{
-							if(global.fds.integers[i] != IN && global.fds.integers[i] != OUT)
-								close(global.fds.integers[i]);
-							i++;
+							if (res)
+								write(input.fd, res, ft_strlen(res));
 						}
 						ft_exit(SUCCESS);
 					}
 					waitpid(pid, &status, 0);
+					close(input.fd);
+					input.type = redir_input;
+					input.fd = NOT_OPENED;
 				}
 			}
 			i++;
 		}
 		if (arguments && arguments[0])
 		{
-			void (*func)(char**) = built_in(arguments[0]);
+			void (*func)(int, char**) = built_in(arguments[0]);
 			if (func)
 			{
 				// if inside_pipe fork
-				if (global.inside_pipe)
+				if (s_global.inside_pipe)
 				{
 					pid = fork();
-					add_to_list(&global.pids, &pid);
+					add_to_list(&s_global.pids, &pid);
 					if (pid == 0)
 					{
 						if (input.type == redir_input)
@@ -834,7 +804,7 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 							dup2(output.fd, OUT);
 							close(output.fd);
 						}
-						func(&arguments[1]);
+						func(OUT, &arguments[1]);
 						ft_exit(SUCCESS);
 					}
 				}
@@ -852,80 +822,62 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 						dup2(output.fd, OUT);
 						close(output.fd);
 					}
-					ft_printf(OUT, "built in function: %s\n", arguments[0]);
-					int i = 1;
-					if(arguments[i])
-						ft_printf(OUT,"       has arguments:\n");
-					while(arguments[i])
-					{
-					    ft_printf(OUT ,"     	%s\n", arguments[i]);
-					    i++;
-					}
-					func(&arguments[1]);
+					func(output.fd, &arguments[1]);
 				}
 			}
 			else
 			{
-				ft_printf(OUT, "Execute command\n");
 				arguments[0] = get_command_path(arguments[0]);
 				pid = fork();
-				add_to_list(&global.pids, &pid);
+				add_to_list(&s_global.pids, &pid);
 				if (pid == 0)
 				{
 					if (input.type == redir_input)
 					{
-						ft_printf(OUT, "redirect input: %d, output: %d\n", input.fd, output.fd);
 						open_file(&input);
 						dup2(input.fd, IN);
-						// close(input.fd);
 					}
 					if (output.type == redir_output || output.type == append_)
 					{
-						ft_printf(OUT, "redirect output: %d, input: %d\n", output.fd, input.fd);
 						open_file(&output);
 						dup2(output.fd, OUT);
-						// close(output.fd);
 					}
+					fds = s_global.fds.integers;
 					i = 0;
-					while(i < global.fds.pos)
+					while (i < s_global.fds.pos)
 					{
-						if(global.fds.integers[i] != IN && global.fds.integers[i] != OUT)
-							close(global.fds.integers[i]);
+						if (fds[i] != OUT && fds[i] != IN)
+							close(fds[i]);
 						i++;
 					}
+					while (s_global.pids.pos > 0)
+						get_last_exit_code();
 					// when argument[1]=NULL, an error happen
 					// when argument[1] and you give &argument[0] as argument, somwthing enexpectabe happen
 					// check exit code if command not valid
-					if (execve(arguments[0], &arguments[0], global.env))
+					if (execve(arguments[0], &arguments[0], s_global.env) != 0)
 					{
-						if(ft_strchr(arguments[0], '/'))
-							printf("minishell: '%s' no such file or directory\n", arguments[0]);
-						else
-							printf("minishell: '%s' command not found\n", arguments[0]);
+						ft_printf(IN, "minishell: '%s' command not found\n", arguments[0]);
 						ft_exit(COMMAND_NOT_FOUND);
 					}
-					ft_exit(SUCCESS);
 				}
-				printf("\nfinish execution\n");
 			}
 		}
+		return (node->token);
 	}
 	else if (type == pipe_)
 	{
 		if (pipe(fd) < 0)
-		{	
-			printf("Error opening pipe\n");
-			ft_exit(ERROR);
-		}
-		add_to_list(&global.fds, &fd[0]);
-		add_to_list(&global.fds, &fd[1]);
-		global.inside_pipe++;
+			ft_printf(ERR, "Error opening pipe\n");
+		add_to_list(&s_global.fds, &fd[0]);
+		add_to_list(&s_global.fds, &fd[1]);
+		s_global.inside_pipe++;
 		evaluate(node->left, input, new_file(NULL, fd[1], redir_output));
 		evaluate(node->right, new_file(NULL, fd[0], redir_input), output);
-		global.inside_pipe--;
-		fds = global.fds.integers;
-		close(fds[--global.fds.pos]);
-		close(fds[--global.fds.pos]);
+		s_global.inside_pipe--;
+		fds = s_global.fds.integers;
+		close(fds[--s_global.fds.pos]);
+		close(fds[--s_global.fds.pos]);
 	}
 	else if (type == or_ || type == and_)
 	{
@@ -943,30 +895,29 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 		i = 0;
 		while (i < node->token->len)
 		{
-			token = ((t_token **)global.tokens.pointers)[pos];
+			token = ((t_token **)s_global.tokens.pointers)[pos];
 			pos++;
 			if (is_redirection(token->type))
 			{
 				type = token->type;
-				token = ((t_token **)global.tokens.pointers)[pos];
+				token = ((t_token **)s_global.tokens.pointers)[pos];
 				if (token->type == star_)
 				{
-					printf("minishell: * ambiguous redirection\n");
+					ft_printf(OUT, "minishell: *: ambiguous redirection\n");
 					ft_exit(AMBIGIOUS_REDIRECTION);
 				}
 				else if (token->type != identifier_)
 				{
-					printf("minishell: Unexpected symbol after redirection\n");
+					ft_printf(OUT, "minishell: Unexpected symbol after redirection\n");
 					ft_exit(UNEXPECTED_ERROR);
 				}
 				pos++;
 				i++;
-				filename = expand(token->value);
+				filename = expand(token);
 				if (type == redir_input)
 					input = new_file(filename, NOT_OPENED, type);
 				if (type == redir_output || type == append_)
 					output = new_file(filename, NOT_OPENED, type);
-# if 0
 				if (type == heredoc_)
 				{
 					// print error if filename is NULL;
@@ -981,9 +932,8 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 						signal(SIGINT, handle_heredoc_signal);
 						signal(SIGQUIT, handle_heredoc_signal);
 						res = NULL;
-						while (res == NULL || ft_strcmp(res, delimiter))
+						while ((res == NULL || ft_strcmp(res, delimiter)))
 						{
-							// expand it
 							res = readline("heredoc $> ");
 							if (res)
 								write(input.fd, res, ft_strlen(res));
@@ -995,7 +945,6 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 					input.type = redir_input;
 					input.fd = NOT_OPENED;
 				}
-#endif
 			}
 			i++;
 		}
@@ -1009,7 +958,6 @@ t_value	*evaluate(t_node *node, t_file input, t_file output)
 		}
 		return (evaluate(node->left, input, output));
 	}
-	printf("Exit evaluate\n");
 	return (NULL);
 }
 
@@ -1021,86 +969,65 @@ int	main(int argc, char **argv, char **envp)
 	t_file	output;
 	char	*tmp;
 	t_token	**tokens;
-	int		status;
+	int status;
 
-	global.values = (char *[]){"<<", ">>", "<", ">", "&&", "||", "(", ")", "|", "*", 0};
-	global.types = (t_type[]){heredoc_, append_, redir_input, redir_output, and_, or_, lparent_, rparent_, pipe_, star_, 0};
-	global.env = envp;
-	new_list(&global.envirement, sizeof(t_node *), pointers_);
-	new_list(&global.tokens, sizeof(t_token *), pointers_);
-	new_list(&global.pids, sizeof(int), integers_);
-	new_list(&global.fds, sizeof(int), integers_);
+	s_global.values = (char *[]){"<<", ">>", "<", ">", "&&", "||", "(", ")", "|", "*", 0};
+	s_global.types = (t_type[]){heredoc_, append_, redir_input, redir_output, and_, or_, lparent_, rparent_, pipe_, star_, 0};
+	s_global.env = envp;
+	new_list(&s_global.envirement, sizeof(t_node *), pointers_);
+	new_list(&s_global.tokens, sizeof(t_token *), pointers_);
+	new_list(&s_global.pids, sizeof(int), integers_);
+	new_list(&s_global.fds, sizeof(int), integers_);
 	i = 0;
 	while (envp && envp[i])
 	{
 		if (ft_strncmp("PATH", envp[i], ft_strlen("PATH")) == 0)
 		{
-			global.path = split(envp[i], ":");
+			s_global.path = split(envp[i], ":");
 			break ;
 		}
 		i++;
 	}
 	build_envirement(envp);
-	clear_list(&global.tokens);
-	input = new_file(NULL, IN, 0);
-	output = new_file(NULL, OUT, 0);
+	clear_list(&s_global.tokens);
 	while (1)
 	{
 		signal(SIGINT, handle_signal);
 		signal(SIGQUIT, handle_signal);
-		// input = new_file(NULL, IN, 0);
-		// output = new_file(NULL, OUT, 0);
+		input = new_file(NULL, IN, 0);
+		output = new_file(NULL, OUT, 0);
 		text = readline("minishell $> ");
-		if (text == NULL)
-			break;
 		add_to_addresses(text);
-		// if (is_inclosed(text))
-		// {
-		// 	text = ft_realloc(text, ft_strlen(text), ft_strlen(text) + 2);
-		// 	text[ft_strlen(text)] = '\n';
-		// 	tmp = text;
-		// 	while (tmp && is_inclosed(text))
-		// 	{
-		// 		tmp = ft_readline("> ");
-		// 		text = ft_realloc(text, ft_strlen(text), ft_strlen(text)
-		// 				+ ft_strlen(tmp) + 1);
-		// 		ft_strcpy(text + ft_strlen(text), tmp);
-		// 	}
-		// 	text[ft_strlen(text) - 1] = 0;
-		// }
+		if (is_inclosed(text))
+		{
+			text = ft_realloc(text, ft_strlen(text), ft_strlen(text) + 2);
+			text[ft_strlen(text)] = '\n';
+			tmp = text;
+			while (tmp && is_inclosed(text))
+			{
+				tmp = ft_readline("> ");
+				text = ft_realloc(text, ft_strlen(text), ft_strlen(text)
+						+ ft_strlen(tmp) + 1);
+				ft_strcpy(text + ft_strlen(text), tmp);
+			}
+			text[ft_strlen(text) - 1] = 0;
+		}
 		if (text)
 			add_history(text);
 		build_tokens(text);
 		// exit(0);
-		global.tokens.pos = 0;
-		tokens = (t_token **)global.tokens.pointers;
-		while (tokens[global.tokens.pos]->type != end_)
+		s_global.tokens.pos = 0;
+		tokens = (t_token **)s_global.tokens.pointers;
+		while (tokens[s_global.tokens.pos]->type != end_)
 			evaluate(expr(), input, output);
-		while (global.pids.pos > 0)
-		{
-# if 0
+		while (s_global.pids.pos > 0)
 			status = get_last_exit_code();
-#else
-			waitpid(global.pids.integers[--global.pids.pos], &status, 0);
-#endif
-			ft_printf(OUT,"wait \n");
-		}
-		i = 0;
-		while(i < global.fds.pos)
-		{
-			if(global.fds.integers[i] != OUT && global.fds.integers[i] != IN)
-				close(global.fds.integers[i]);
-			i++;
-		}
-		// if (text == NULL)
-		// 	break ; // exit if text is NULL
-		// text = NULL;
-		clear_list(&global.tokens);
-		clear_list(&global.pids);
-		clear_list(&global.fds);
+		if (text == NULL)
+			break ; // exit if text is NULL
+		text = NULL;
+		clear_list(&s_global.tokens);
+		clear_list(&s_global.pids);
+		clear_list(&s_global.fds);
 	}
-	while(global.pids.pos > 0)
-        get_last_exit_code();
-	printf("exit from main\n");
 	ft_exit(0);
 }

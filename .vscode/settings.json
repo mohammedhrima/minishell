@@ -30,7 +30,8 @@
         "string": "c",
         "string_view": "c",
         "unordered_map": "c",
-        "utility": "c"
+        "utility": "c",
+        "__locale": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
