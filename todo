@@ -51,3 +51,4 @@ try using somewhere:
 + verify code line by line
 + tab CTRL+V then TAB
 + cat << close | grep "a" | wc -la
++ dsfgihzds  && cat << l

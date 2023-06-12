@@ -10,3 +10,4 @@ fi
 
 ./a.out
 rm -rf a.out*
+

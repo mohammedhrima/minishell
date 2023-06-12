@@ -89,6 +89,24 @@ void	*ft_memcpy(void *destination, void *source, size_t len)
 
 // memory allocation
 // this one add to addresses
+void add_to_addresses(void *pointer)
+{
+    if (global.addresses.len == 0)
+    {
+        global.addresses.pos = 0;
+        global.addresses.len = 100;
+        global.addresses.pointers = malloc(global.addresses.len * sizeof(void *));
+    }
+    global.addresses.pointers[global.addresses.pos++] = pointer;
+    if (global.addresses.pos + 10 > global.addresses.len)
+    {
+        global.addresses.len *= 2;
+        void *temporary = malloc(global.addresses.len * sizeof(void *));
+        ft_memcpy(temporary, global.addresses.pointers, global.addresses.pos * sizeof(void *));
+        free(global.addresses.pointers);
+        global.addresses.pointers = temporary;
+    }
+}
 void    *ft_calloc(size_t count, size_t size)
 {
 	void			*new;
@@ -328,6 +346,7 @@ void print_space(int fd, int len)
 }
 void ft_printf(int file_descriptor, char *fmt, ...)
 {
+#if 0
     va_list ap;
 
     va_start(ap, fmt);
@@ -364,6 +383,8 @@ void ft_printf(int file_descriptor, char *fmt, ...)
                     case append_:
                     case and_:
                     case or_:
+                    case lparent_:
+                    case rparent_:
                         print_space(file_descriptor, space - ft_strlen(variable->value));
                         ft_putstr(file_descriptor, variable->value);
                         break;
@@ -405,4 +426,5 @@ void ft_printf(int file_descriptor, char *fmt, ...)
         i++;
     }
     va_end(ap);
+#endif
 }
