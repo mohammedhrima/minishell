@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.css": "tailwindcss",
         "todo": "plaintext",
         "005.C": "cpp",
         "history.h": "c",
@@ -31,7 +32,8 @@
         "string_view": "c",
         "unordered_map": "c",
         "utility": "c",
-        "__locale": "c"
+        "__locale": "c",
+        "header.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

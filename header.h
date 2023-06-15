@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/02 13:20:36 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/12 01:02:51 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/14 23:48:43 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,6 +83,8 @@ enum e_type
 	export_,
 	unset_,
 	exit_,
+	single_quote_,
+	double_quote_,
 	end_
 };
 
@@ -138,37 +140,10 @@ struct s_global
 };
 t_global global;
 
-void ft_printf(int file_descriptor, char *fmt, ...);
-int ft_isspace(int c);
-void *ft_calloc(size_t count, size_t size);
-void ft_strncpy(char *destination, char *source, int len);
-void ft_strcpy(char *destination, char *source);
-char **split_by_two(char *string, char c);
-void ft_memset(void *pointer, int c, size_t len);
-void *ft_memcpy(void *destination, void *source, size_t len);
-char *ft_strchr(char *string, int c);
-int ft_strncmp(char *left, char *right, size_t len);
-int ft_strcmp(char *left, char *right);
-int ft_strlen(char *string);
-char *strjoin(char *string1, char *string2, char *string3);
-char *ft_strdup(char *string);
-char *ft_readline(char *text);
-char *type_to_string(t_type type);
-void add_pointer(t_list *list, void *value);
-void add_number(t_list *list, int number);
-char *ft_itoa(int num);
-void *ft_realloc(void *pointer, size_t old_size, size_t new_size);
-int ft_atoi(char *str);
-char *ft_itoa(int num);
-void ft_exit(int code);
-t_node *expr(void);
-t_node *and_or(void);
-t_node *pipe_node(void);
-t_node *redirection(void);
-t_node *prime(void);
-t_node *new_node(t_token *token);
-int get_last_exit_code(void);
-char **split(char *string, char *spliter);
-void add_to_addresses(void *pointer);
+void rl_replace_line (const char *text, int clear_undo);
+#include "utils/utils.h"
+#include "parsing/parsing.h"
+#include "execution/builtin/builtin.h"
+#include "execution/evaluate/evaluate.h"
 
 #endif

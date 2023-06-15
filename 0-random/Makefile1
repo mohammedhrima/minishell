@@ -1,0 +1,62 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile1                                          :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2023/06/14 07:43:49 by mhrima            #+#    #+#              #
+#    Updated: 2023/06/14 13:40:01 by mhrima           ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+CC = cc
+
+READLINE_INCLUDE = -I/Users/mhrima/.local/lib/readline/include/readline
+
+READLINE = -lreadline -L/Users/mhrima/.local/lib/readline/lib
+
+CFLAGS = -Wall -Werror -Wextra $(READLINE_INCLUDE)
+RM = rm -rf
+
+SRCS = mandatory.c
+SRCS_BONUS = bonus.c
+UTILS = utils.c
+
+#-I./readline/include
+
+OBJS = $(SRCS:.c=.o)
+OBJS_BONUS = $(SRCS_BONUS:.c=.o)
+OBJS_UTILS = $(UTILS:.c=.o)
+
+NAME = mandatory
+BONUS = bonus
+
+SAN = -fsanitize=address -fsanitize=null -g3
+
+all: $(NAME)
+
+# $(OBJS_BONUS): $(SRCS_BONUS)
+# 	$(CC) $(CFLAGS) $(SRCS_BONUS) -c
+
+# $(OBJS): $(SRCS)
+# 	$(CC) $(CFLAGS) $(SRCS) -c
+
+# $(OBJS_UTILS): $(UTILS)
+# 	$(CC) $(CFLAGS) $(UTILS) -c
+
+$(NAME): $(OBJS) $(OBJS_UTILS)
+	$(CC) $(CFLAGS) $(READLINE) $(OBJS) $(OBJS_UTILS) -o $(NAME)
+
+bonus: $(BONUS)
+
+$(BONUS): $(OBJS_BONUS) $(OBJS_UTILS)
+	$(CC) $(CFLAGS) $(READLINE) $(OBJS_BONUS) $(OBJS_UTILS) -o $(BONUS)
+
+clean: 
+	$(RM) $(OBJS) $(OBJS_BONUS) $(OBJS_UTILS)
+	
+fclean: clean
+	$(RM) $(NAME) $(BONUS)
+
+re : fclean all

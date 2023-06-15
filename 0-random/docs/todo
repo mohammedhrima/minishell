@@ -1,0 +1,54 @@
++ there some functions or redirection that get execute in main process:
+    in case if error fork a child process and exit from there
+
++ limit heredoc, exit status
++ try write to pipe instead of file
+
++ ctrl + C in heredoc
+
++ errors in forks open opendir cwd ...
+
++ ambiguous redirection error !!
++ expect filename after redirection symbol
+
++ try using somewhere:
+    dev/random
+    dev/null
+
++ *:
+    + * is not expandable
+    + create token type star_start
+    + call get getdir
+    + keep creating tokens with name of all files and folder in directory,
+    + creat token with type star_end
+
+    + store command in left
+    + store elements of start on right
+    (maybe you should print the name)
+    + call execute every time and give it the arguments + with of all elements everytime and execute them
+
++ protect if built in function failed
++ handle :  (ls && ls && ls) || ls
+
++ ctrl + d in here doc must be handled
+
++ * is not expandable
++ remove ft_printf att the end, keep printf instead
++ verify norm before pushing
++ check all opens, read, fork, opendir, readdir if they fail
++ set all pointers to NULL at beginning
++ add minishell to all error messages , example: "minishell: syntax error"
+
+try using somewhere:
+    dev/random
+    dev/null
+
++ do redirection even without command
+    + > out : will create a file (that's it)
+    + cmd >> out: will append to file / if it doesn't exists it will create it
+
++ remove ft_printf with all it's sub functions
++ verify code line by line
++ tab CTRL+V then TAB
++ cat << close | grep "a" | wc -la
++ dsfgihzds  && cat << l
