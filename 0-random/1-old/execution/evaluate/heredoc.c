@@ -6,13 +6,13 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/15 01:50:29 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/15 01:52:25 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/15 13:02:36 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "evaluate.h"
 
-void	fork_heredoc(char *delimiter, int fd[])
+void	fork_heredoc(char *delimiter, int input, int output)
 {
 	char	*heredoc_text;
 	char	*tmp;
@@ -22,12 +22,12 @@ void	fork_heredoc(char *delimiter, int fd[])
 	{
 		tmp = expand(heredoc_text);
 		free(heredoc_text);
-		write(fd[1], tmp, ft_strlen(tmp));
-		write(fd[1], "\n", ft_strlen("\n"));
+		write(output, tmp, ft_strlen(tmp));
+		write(output, "\n", ft_strlen("\n"));
 		heredoc_text = readline("heredoc $> ");
 	}
-	close(fd[0]);
-	close(fd[1]);
+	close(input);
+	close(output);
 	ft_exit(SUCCESS);
 }
 
@@ -49,7 +49,7 @@ t_file	*open_heredoc(char *delimiter, t_file *input)
 	{
 		signal(SIGINT, handle_heredoc_signal);
 		signal(SIGQUIT, handle_heredoc_signal);
-		fork_heredoc(delimiter, fd);
+		fork_heredoc(delimiter, fd[0], fd[1]);
 	}
 	waitpid(pid, NULL, 0);
 	close(fd[1]);

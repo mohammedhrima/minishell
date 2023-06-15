@@ -2,6 +2,7 @@
 .gitignore
 
 **/a.out
+**/exe
 .DS_Store
 ./vscode
 
