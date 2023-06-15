@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/02 13:20:36 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/15 17:56:35 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/15 21:55:25 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -140,6 +140,8 @@ struct s_global
 };
 t_global global;
 
+#include "folder/built-in/built-in.h"
+
 // to be cleared
 void rl_replace_line (const char *text, int clear_undo);
 void ft_printf(int file_descriptor, char *fmt, ...);
@@ -191,14 +193,6 @@ bool check_special_characters(char *text, int *txt_pos_ptr);
 int check_quotes(char *text, int *txt_pos_ptr);
 int build_tokens(char *text);
 bool is_redirection(t_type type);
-void echo_func(char **arguments);
-void cd_func(char **arguments);
-void new_envirement_variable(char **arguments);
-void export_func(char **arguments);
-void unset_func(char **argument);
-void env_func(char **arguments);
-void exit_func(char **arguments);
-void *built_in(char *cmd);
 void redirect_input(t_file *file);
 void redirect_output(t_file *file);
 void append(t_file *file);
@@ -218,5 +212,8 @@ void	open_append(t_file *file);
 void	open_file(t_file *file);
 int is_inclosed(char *text);
 void build_envirement(char **envp);
-
+void open_heredoc(t_file *input, char *delimiter);
+void execute(t_file *input, t_file *output, char **arguments);
+void check_redirection(t_file *input, t_file *output);
+void handle_input(char *text);
 #endif

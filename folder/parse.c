@@ -34,22 +34,51 @@ int is_inclosed(char *text)
     return (false);
 }
 
-void build_envirement(char **envp)
+void reset(char *text)
 {
-    int i;
-    char **array;
-    t_node *node;
+    while (global.pids.pos > 0)
+        get_last_exit_code();
+    free(text);
+    clear_list(&global.tokens);
+    clear_list(&global.pids);
+    clear_list(&global.fds);
+}
 
-    i = 0;
-    while (envp && envp[i])
+void evaluate_input(char *text)
+{
+    t_file *input;
+    t_file *output;
+    t_token **tokens;
+    t_node *curr;
+
+    input = new_file(NULL, IN, 0);
+    output = new_file(NULL, OUT, 0);
+    global.tokens.pos = 0;
+    tokens = (t_token **)global.tokens.pointers;
+    while (tokens[global.tokens.pos]->type != end_)
     {
-        array = split_by_two(envp[i], '=');
-        node = new_node(new_token(assign_, NULL, 0));
-        node->left = new_node(new_token(identifier_, NULL, 0));
-        node->left->token->value = array[0];
-        node->right = new_node(new_token(identifier_, NULL, 0));
-        node->right->token->value = array[1];
-        add_pointer(&global.envirement, node);
-        i++;
+        curr = expr();
+        if (curr == NULL)
+            break;
+        evaluate(curr, input, output);
+    }
+    reset(text);
+}
+
+void handle_input(char *text)
+{
+    if (is_inclosed(text))
+    {
+        printf("minishell: syntax error\n");
+        add_history(text);
+        reset(text);
+    }
+    else
+    {
+        add_history(text);
+        if (build_tokens(text) != SUCCESS)
+            reset(text);
+        else
+            evaluate_input(text);
     }
 }

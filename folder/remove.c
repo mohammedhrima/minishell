@@ -51,9 +51,9 @@ int ft_isnum(int c)
 { 
     return (c >= '0' && c <= '9');
 }
-#if 1
 void ft_printf(int file_descriptor, char *fmt, ...)
 {
+#if 1
     va_list ap;
 
     va_start(ap, fmt);
@@ -133,5 +133,5 @@ void ft_printf(int file_descriptor, char *fmt, ...)
         i++;
     }
     va_end(ap);
-}
 #endif
+}
