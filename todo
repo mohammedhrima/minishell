@@ -1,2 +1,4 @@
 + don't put any file in folder until it's totaly norminetted
-+ check quotes and parents ... before executing
++ create file for heredoc
++ check forks and pipes error
++ don't exit until CTRL+C <>

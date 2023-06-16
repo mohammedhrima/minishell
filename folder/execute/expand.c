@@ -5,12 +5,12 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/15 01:32:20 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 20:27:58 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 19:33:48 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 22:16:01 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "evaluate.h"
+#include "../../headers/expand.h"
 
 char	*get_var(char *name)
 {
@@ -31,70 +31,60 @@ char	*get_var(char *name)
 	return ("");
 }
 
-int	is_quote(char c, char *res, int *single_quotes_ptr, int *double_quotes_ptr)
+int	update_res(char **res_ptr, char c)
 {
-	if (c == '\'')
+	char	*res;
+
+	res = *res_ptr;
+	res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2);
+	res[ft_strlen(res)] = c;
+	*res_ptr = res;
+	return (1);
+}
+
+int	check_quotes(char c, int *double_quotes_ptr, int *single_quotes_ptr)
+{
+	if (c == '\'' && !(*double_quotes_ptr))
 	{
-		if (!(*double_quotes_ptr))
-			(*single_quotes_ptr) = !(*single_quotes_ptr);
-		else
-		{
-			res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2);
-			res[ft_strlen(res)] = c;
-		}
+		(*single_quotes_ptr) = !(*single_quotes_ptr);
 		return (1);
 	}
-	else if (c == '\"')
+	else if (c == '\"' && !(*single_quotes_ptr))
 	{
-		if (!(*single_quotes_ptr))
-			(*double_quotes_ptr) = !(*double_quotes_ptr);
-		else
-		{
-			res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2);
-			res[ft_strlen(res)] = c;
-		}
+		(*double_quotes_ptr) = !(*double_quotes_ptr);
 		return (1);
 	}
 	return (0);
 }
 
-char	*is_expandable(char *value, char *res, int *ptr)
+int	expand_var(int start, char **res_ptr, char *value)
 {
-	int		i;
-	int		j;
+	int		end;
 	char	*var;
 	char	*to_add;
+	char	*res;
 
-	i = *ptr;
-	var = NULL;
-	i++;
-	j = i;
-	while (value[j] && !ft_strchr(" \"\'", value[j]))
-		j++;
-	var = ft_calloc(j - i + 1, sizeof(char));
-	ft_strncpy(var, value + i, j - i);
+	res = *res_ptr;
+	start++;
+	end = start;
+	while (value[end] && !ft_strchr(" \"\'", value[end]))
+		end++;
+	var = ft_calloc(end - start + 1, sizeof(char));
+	ft_strncpy(var, value + start, end - start);
 	to_add = get_var(var);
 	res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + ft_strlen(to_add)
 			+ 2);
 	ft_strncpy(res + ft_strlen(res), to_add, ft_strlen(to_add));
-	i = j;
-	*ptr = i;
-	return (res);
-}
-
-char	*new_res(char *res, char *value, int *ptr)
-{
-	res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2);
-	res[ft_strlen(res)] = value[(*ptr)++];
-	return (res);
+	*res_ptr = res;
+	return (end);
 }
 
 char	*expand(char *value)
 {
+	char	*res;
 	int		i;
 	int		single_quotes;
 	int		double_quotes;
-	char	*res;
 
 	res = "";
 	i = 0;
@@ -102,16 +92,17 @@ char	*expand(char *value)
 	double_quotes = 0;
 	while (value && value[i])
 	{
-		i += is_quote(value[i], res, &single_quotes, &double_quotes);
-		if (value[i] == '$')
+		if (check_quotes(value[i], &double_quotes, &single_quotes))
+			i++;
+		else if (value[i] == '$')
 		{
 			if (double_quotes || !single_quotes)
-				res = is_expandable(value, res, &i);
+				i = expand_var(i, &res, value);
 			else if (single_quotes)
-				res = new_res(res, value, &i);
+				i += update_res(&res, value[i]);
 		}
 		else
-			res = new_res(res, value, &i);
+			i += update_res(&res, value[i]);
 	}
 	return (res);
 }

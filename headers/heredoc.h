@@ -1,28 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   nodes.h                                            :+:      :+:    :+:   */
+/*   heredoc.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:25:50 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 22:48:01 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 21:37:53 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 22:07:34 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef NODES_H
-# define NODES_H
+#ifndef HEREDOC_H
+#define HEREDOC_H
 
-# include "minishell.h"
+#include "minishell.h"
 
-t_node	*expr(void);
-t_node	*and_or(void);
-t_node	*pipe_node(void);
-t_node	*prime(void);
-t_node	*parentses(void);
-t_node	*advance(t_node *node);
-int		skip(t_type type);
-bool	check(t_type type, t_type types[]);
-int		check_token_type(t_token *token);
+t_file *open_heredoc(char *delimiter);
 
 #endif

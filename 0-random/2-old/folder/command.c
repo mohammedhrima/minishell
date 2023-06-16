@@ -79,7 +79,7 @@ void execute(t_file *input, t_file *output, char **arguments)
                     close(global.fds.integers[i]);
                 i++;
             }
-            if (execve(arguments[0], &arguments[0], global.env))
+            if (execve(arguments[0], arguments, global.env) < 0)
             {
                 if (ft_strchr(arguments[0], '/'))
                     printf("minishell: '%s' no such file or directory\n", arguments[0]);

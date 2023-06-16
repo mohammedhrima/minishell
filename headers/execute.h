@@ -1,28 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   nodes.h                                            :+:      :+:    :+:   */
+/*   execute.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:25:50 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 22:48:01 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 20:53:49 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 22:55:31 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef NODES_H
-# define NODES_H
+#ifndef EXECUTE_H
+#define EXECUTE_H
 
-# include "minishell.h"
-
-t_node	*expr(void);
-t_node	*and_or(void);
-t_node	*pipe_node(void);
-t_node	*prime(void);
-t_node	*parentses(void);
-t_node	*advance(t_node *node);
-int		skip(t_type type);
-bool	check(t_type type, t_type types[]);
-int		check_token_type(t_token *token);
+#include "minishell.h"
+t_value *evaluate(t_node *node, t_file *input, t_file *output);
+void execute(char **arguments, t_file *input, t_file *output);
 
 #endif

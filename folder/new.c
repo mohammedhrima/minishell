@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 02:27:36 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 02:28:48 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 20:16:06 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,7 @@ t_token	*new_token(t_type type, char *source, int len)
 	{
 		new->value = ft_calloc(len + 1, sizeof(char));
 		ft_strncpy(new->value, source, len);
+		ft_printf(OUT, "new token with value: %s\n", new->value);
 	}
 	return (new);
 }

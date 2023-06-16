@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 04:04:29 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 04:34:57 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 22:30:40 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,13 +16,7 @@ int	ft_exit(int code)
 {
 	int	i;
 
-	i = 0;
-	while (i < global.fds.pos)
-	{
-		if (global.fds.integers[i] != OUT && global.fds.integers[i] != IN)
-			close(global.fds.integers[i]);
-		i++;
-	}
+	close_fds();
 	i = 0;
 	while (i < global.addresses.pos)
 	{

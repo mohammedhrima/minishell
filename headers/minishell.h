@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 03:10:27 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 04:49:17 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 22:48:47 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include "builtin.h"
 # include "consts.h"
 # include "new.h"
+# include "tokenize.h"
 # include "openfile.h"
 # include "remove.h"
 # include "signals.h"
@@ -24,14 +25,11 @@
 # include "utils.h"
 # include "nodes.h"
 # include "list.h"
+# include "expand.h"
+# include "execute.h"
+# include "heredoc.h"
+# include "redirection.h"
 
 void	rl_replace_line(const char *text, int clear_undo);
-t_node	*expr(void);
-t_node	*and_or(void);
-t_node	*pipe_node(void);
-bool	is_redirection(t_type type);
-t_node	*prime(void);
-void	add_number(t_list *list, int number);
-int		get_last_exit_code(void);
 
 #endif

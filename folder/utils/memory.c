@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 04:05:33 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 04:35:02 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 21:49:55 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,9 +77,12 @@ void	*ft_calloc(size_t count, size_t size)
 	size_t			i;
 
 	new = (void *)malloc(count * size);
-	add_to_addresses(new);
 	if (!new)
-		return (NULL);
+	{
+		printf("Error in allocation\n");
+		exit(ERROR);
+	}
+	add_to_addresses(new);
 	i = 0;
 	pointer = (unsigned char *)new;
 	while (i < count * size)

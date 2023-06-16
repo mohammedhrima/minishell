@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 04:18:34 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 04:34:43 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 22:47:46 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,8 +78,23 @@ bool	check(t_type type, t_type types[])
 	return (false);
 }
 
-bool	is_redirection(t_type type)
+int	check_token_type(t_token *token)
 {
-	return (type == redir_input || type == redir_output || type == heredoc_
-		|| type == append_);
+	int	pid;
+	int	pos;
+
+	if (token->type == identifier_ || token->type == star_)
+	{
+		pid = fork();
+		add_number(&global.pids, pid);
+		printf("minishell: syntax error unexpected '%s'\n", token->value);
+		if (pid == 0)
+			ft_exit(SYNTAX_ERROR);
+		pos = global.tokens.pos;
+		while (((t_token **)global.tokens.pointers)[pos]->type != end_)
+			pos++;
+		global.tokens.pos = pos;
+		return (SYNTAX_ERROR);
+	}
+	return (SUCCESS);
 }

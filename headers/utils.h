@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 02:09:40 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:43:56 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 22:30:04 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,5 +33,8 @@ char	**split_by_two(char *string, char c);
 char	*strjoin(char *string1, char *string2, char *string3);
 char	*ft_itoa(int num);
 int		ft_atoi(char *str);
-
+char	*ft_strdup(char *string);
+int     create_child(void);
+int     *open_pipe(void);
+void close_fds(void);
 #endif
