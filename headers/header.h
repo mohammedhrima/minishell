@@ -1,18 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                             :+:      :+:    :+:   */
+/*   header.h                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:08:00 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:12:54 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 03:42:13 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 03:42:21 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/builtin.h"
+#ifndef HEADER_H
+# define HEADER_H
 
-void	exit_func(char **arguments)
-{
-	ft_exit(ft_atoi(arguments[0]));
-}
+# include <dirent.h>
+# include <fcntl.h>
+# include <readline/history.h>
+# include <readline/readline.h>
+# include <signal.h>
+# include <stdarg.h>
+# include <stdbool.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include <sys/wait.h>
+# include <unistd.h>
+
+#endif

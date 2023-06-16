@@ -33,7 +33,11 @@
         "unordered_map": "c",
         "utility": "c",
         "__locale": "c",
-        "header.h": "c"
+        "header.h": "c",
+        "built-in.h": "c",
+        "unistd.h": "c",
+        "list": "cpp",
+        "utils.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

@@ -1,18 +1,24 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                             :+:      :+:    :+:   */
+/*   new.h                                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:08:00 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:12:54 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 02:11:55 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 03:43:35 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/builtin.h"
+#ifndef NEW_H
+# define NEW_H
 
-void	exit_func(char **arguments)
-{
-	ft_exit(ft_atoi(arguments[0]));
-}
+# include "structs.h"
+# include "minishell.h"
+
+t_list	*new_list(t_list *list, size_t size, t_type type);
+t_node	*new_node(t_token *token);
+t_token	*new_token(t_type type, char *source, int len);
+t_file	*new_file(char *name, int fd, t_type type);
+
+#endif

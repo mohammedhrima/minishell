@@ -1,18 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                             :+:      :+:    :+:   */
+/*   openfile.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:08:00 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:12:54 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 04:43:13 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 04:52:48 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/builtin.h"
+#ifndef OPENFILE_H
+# define OPENFILE_H
 
-void	exit_func(char **arguments)
-{
-	ft_exit(ft_atoi(arguments[0]));
-}
+# include "minishell.h"
+
+void	open_input(t_file *file);
+void	open_output(t_file *file);
+void	open_append(t_file *file);
+void	open_file(t_file *file);
+
+#endif

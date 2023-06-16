@@ -1,18 +1,21 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                             :+:      :+:    :+:   */
+/*   signals.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:08:00 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:12:54 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 02:38:07 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 03:43:47 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/builtin.h"
+#ifndef SIGNALS_H
+# define SIGNALS_H
 
-void	exit_func(char **arguments)
-{
-	ft_exit(ft_atoi(arguments[0]));
-}
+# include "minishell.h"
+
+void	handle_signal(int signum);
+void	handle_heredoc_signal(int signum);
+
+#endif

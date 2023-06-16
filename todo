@@ -1,23 +1,2 @@
-+ execution
-    ./builtin
-        each function with it's filename
-    ./evaluate
-        command
-        heredoc
-        expanding
-        pipe
-        and / or
-        parenteses
-        nodes
-        open_file
-
-+ parsing:
-    tokenize
-    read_input
-
-+ utils
-    new
-    list.c
-    signals
-
-+ make sure to set all pointers to NULL
++ don't put any file in folder until it's totaly norminetted
++ check quotes and parents ... before executing

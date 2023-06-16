@@ -1,6 +1,6 @@
 #include "../header.h"
 
-void open_heredoc(t_file *input, char *delimiter)
+t_file *open_heredoc(t_file *input, char *delimiter)
 {
     int fd[2];
     int pid;
@@ -45,4 +45,5 @@ void open_heredoc(t_file *input, char *delimiter)
     }
     waitpid(pid, NULL, 0);
     close(fd[1]);
+    return input;
 }

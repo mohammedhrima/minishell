@@ -1,4 +1,16 @@
-#include "built-in.h"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   export.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/06/16 03:08:03 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 03:12:51 by mhrima           ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "../../headers/builtin.h"
 
 void	new_envirement_variable(char **arguments)
 {
@@ -29,8 +41,8 @@ void	export_func(char **arguments)
 		{
 			if (envirement[i]->left->token->value)
 				printf("declare -x %s=\"%s\"\n",
-						envirement[i]->left->token->value,
-						envirement[i]->right->token->value);
+					envirement[i]->left->token->value,
+					envirement[i]->right->token->value);
 			i++;
 		}
 	}

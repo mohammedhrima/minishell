@@ -11,7 +11,8 @@ bool check_star(char *text, int *txt_pos_ptr)
     if (text[txt_pos] == '*')
     {
         add_pointer(&global.tokens, new_token(star_, text + txt_pos, 1));
-        txt_pos++;
+        while(text[txt_pos] == '*')
+            txt_pos++;
         new = getcwd(NULL, 0);
         curr_dir = opendir(new);
         free(new);

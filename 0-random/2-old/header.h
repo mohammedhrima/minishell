@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/02 13:20:36 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/15 21:55:25 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/15 22:43:26 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -212,7 +212,7 @@ void	open_append(t_file *file);
 void	open_file(t_file *file);
 int is_inclosed(char *text);
 void build_envirement(char **envp);
-void open_heredoc(t_file *input, char *delimiter);
+t_file* open_heredoc(t_file *input, char *delimiter);
 void execute(t_file *input, t_file *output, char **arguments);
 void check_redirection(t_file *input, t_file *output);
 void handle_input(char *text);

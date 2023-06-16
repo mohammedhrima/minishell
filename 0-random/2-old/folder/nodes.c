@@ -3,7 +3,6 @@
 int	skip(t_type type)
 {
 	t_token	*token;
-	int		pid;
 
 	token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
 	if (token->type != type)
@@ -138,7 +137,6 @@ t_node	*parentses(void)
 {
 	t_token	*token;
 	t_node	*node;
-	int		pid;
 
 	token = ((t_token **)global.tokens.pointers)[global.tokens.pos];
 	if (token->type == lparent_)

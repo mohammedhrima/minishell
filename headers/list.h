@@ -1,18 +1,22 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   exit.c                                             :+:      :+:    :+:   */
+/*   list.h                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/06/16 03:08:00 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:12:54 by mhrima           ###   ########.fr       */
+/*   Created: 2023/06/16 03:20:14 by mhrima            #+#    #+#             */
+/*   Updated: 2023/06/16 04:38:16 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/builtin.h"
+#ifndef LIST_H
+# define LIST_H
 
-void	exit_func(char **arguments)
-{
-	ft_exit(ft_atoi(arguments[0]));
-}
+# include "minishell.h"
+
+void	add_pointer(t_list *list, void *value);
+void	add_number(t_list *list, int number);
+void	clear_list(t_list *list);
+
+#endif
