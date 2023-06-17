@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 23:05:24 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/17 02:09:47 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 03:59:07 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,7 @@ void	execute_command(char **arguments, t_file *input, t_file *output)
 void	execute(char **arguments, t_file *input, t_file *output)
 {
 	void	(*func)(char **);
-
+	
 	func = get_built_in_function(arguments[0]);
 	if (func)
 		call_func(func, arguments, input, output);

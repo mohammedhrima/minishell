@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 23:53:38 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/17 02:40:41 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 04:03:36 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,12 +42,13 @@ char	**build_arguments(int *there_is_redirection_ptr, t_node *node,
 
 	i = 0;
 	len = 0;
+	arguments = NULL;
 	pos = node->token->start;
 	while (i < node->token->len)
 	{
 		token = ((t_token **)g_global.tokens.pointers)[pos];
 		pos++;
-		if (token->type == identifier_)
+		if (token->type == identifier_ || token->type == star_)
 			arguments = update_arguments(arguments, token, &len, &pos);
 		else if (is_redirection(token->type))
 		{
@@ -66,7 +67,6 @@ void	evaluate_command(t_node *node, t_file *input, t_file *output)
 	char	**arguments;
 	int		there_is_redirection;
 
-	arguments = NULL;
 	there_is_redirection = 0;
 	arguments = build_arguments(&there_is_redirection, node, input, output);
 	if (arguments && arguments[0])

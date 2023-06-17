@@ -6,7 +6,7 @@
 #    By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/06/16 04:40:36 by mhrima            #+#    #+#              #
-#    Updated: 2023/06/17 02:30:41 by mhrima           ###   ########.fr        #
+#    Updated: 2023/06/17 03:49:51 by mhrima           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,7 @@ READLINE_INCLUDE = -I$(HOME)/.local/lib/readline/include/readline
 READLINE = -lreadline -lhistory -L$(HOME)/.local/lib/readline/lib
 
 CFLAGS = -Wall -Werror -Wextra
-#SAN = -fsanitize=address -fsanitize=null -g3
+SAN = -fsanitize=address -fsanitize=null -g3
 RM = rm -rf
 
 SRCS = minishell.c  folder/new.c folder/list.c folder/signals.c folder/open_file.c folder/redirection.c 

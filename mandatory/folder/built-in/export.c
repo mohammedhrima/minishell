@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 03:08:03 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/17 02:07:41 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 03:47:14 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,22 @@
 void	new_envirement_variable(char **arguments)
 {
 	t_node	*node;
+	t_node	**envirement;
 	char	**array;
+	int		i;
 
+	i = 0;
 	array = split_by_two(arguments[0], '=');
+	envirement = (t_node **)g_global.envirement.pointers;
+	while (envirement && envirement[i])
+	{
+		if (ft_strcmp(envirement[i]->left->token->value, array[0]) == 0)
+		{
+			envirement[i]->right->token->value = array[1];
+			return ;
+		}
+		i++;
+	}
 	node = new_node(new_token(assign_, NULL, 0));
 	node->left = new_node(new_token(identifier_, NULL, 0));
 	node->left->token->value = array[0];

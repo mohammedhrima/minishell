@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 19:33:48 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/17 02:09:52 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 03:48:27 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,7 @@ int	expand_var(int start, char **res_ptr, char *value)
 	res = *res_ptr;
 	start++;
 	end = start;
-	while (value[end] && !ft_strchr(" \"\'", value[end]))
+	while (value[end] && !ft_strchr(" \"\'$", value[end]))
 		end++;
 	var = ft_calloc(end - start + 1, sizeof(char));
 	ft_strncpy(var, value + start, end - start);

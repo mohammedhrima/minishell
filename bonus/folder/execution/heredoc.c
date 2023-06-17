@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 22:16:20 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/17 00:13:02 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 03:53:44 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,6 @@ t_file	*open_heredoc(char *delimiter)
 	int		*fd;
 	int		pid;
 	t_file	*input;
-
 	fd = open_pipe();
 	input = new_file(NULL, fd[0], redir_input);
 	new_file(NULL, fd[1], redir_output);
