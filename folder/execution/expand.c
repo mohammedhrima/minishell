@@ -6,11 +6,11 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 19:33:48 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 22:16:01 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 00:12:59 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/expand.h"
+#include "../../headers/execute.h"
 
 char	*get_var(char *name)
 {

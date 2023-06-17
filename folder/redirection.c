@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 22:52:33 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 22:52:37 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/16 23:34:14 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,4 +69,18 @@ void	do_redirection(t_type type, char *name, t_file *input, t_file *output)
 		*output = *new_file(name, NOT_OPENED, type);
 	if (type == heredoc_)
 		*input = *open_heredoc(name);
+}
+
+int	handle_redirection(int *pos_ptr, t_token *token, t_file *input,
+		t_file *output)
+{
+	t_type	type;
+
+	type = token->type;
+	token = ((t_token **)global.tokens.pointers)[(*pos_ptr)];
+	if (check_redirection_errors(token, false))
+		return (ERROR);
+	(*pos_ptr)++;
+	do_redirection(type, expand(token->value), input, output);
+	return (SUCCESS);
 }

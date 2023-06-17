@@ -2,3 +2,5 @@
 + create file for heredoc
 + check forks and pipes error
 + don't exit until CTRL+C <>
++ makefiel should crete object then executable
+

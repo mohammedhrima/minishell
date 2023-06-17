@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 03:10:27 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 22:48:47 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 01:49:32 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 # include "builtin.h"
 # include "consts.h"
 # include "new.h"
-# include "tokenize.h"
+# include "parsing.h"
 # include "openfile.h"
 # include "remove.h"
 # include "signals.h"
@@ -25,9 +25,7 @@
 # include "utils.h"
 # include "nodes.h"
 # include "list.h"
-# include "expand.h"
 # include "execute.h"
-# include "heredoc.h"
 # include "redirection.h"
 
 void	rl_replace_line(const char *text, int clear_undo);

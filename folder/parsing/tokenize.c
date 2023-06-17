@@ -6,11 +6,11 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 07:40:00 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 07:41:24 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 01:49:54 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../headers/tokenize.h"
+#include "../../headers/parsing.h"
 
 t_type	search_in_values(int *txt_pos_ptr, char *text)
 {

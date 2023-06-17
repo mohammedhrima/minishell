@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 02:14:28 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:44:47 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 00:02:20 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,17 +86,6 @@ struct					s_list
 	size_t				size;
 	int					pos;
 	int					len;
-};
-
-struct					s_arg
-{
-	t_type				type;
-	t_file				*in;
-	t_file				*out;
-	t_node				*curr;
-	char				*text;
-	int					len;
-	int					i;
 };
 
 struct					s_global

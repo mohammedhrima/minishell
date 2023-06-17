@@ -6,11 +6,11 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 22:16:20 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 22:16:40 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 00:13:02 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../headers/heredoc.h"
+#include "../../headers/execute.h"
 
 void	heredoc_child_process(char *delimiter, int *fd)
 {
