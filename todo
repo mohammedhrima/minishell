@@ -1,3 +1,6 @@
 + create file for heredoc
 + "ls -la"
 + $USER$PWD
++ a="file          "
++ a+="file          "
++ export a b c
