@@ -73,7 +73,7 @@ void	execute_command(char **arguments, t_file *input, t_file *output)
 void	execute(char **arguments, t_file *input, t_file *output)
 {
 	void	(*func)(char **);
-	
+
 	func = get_built_in_function(arguments[0]);
 	if (func)
 		call_func(func, arguments, input, output);

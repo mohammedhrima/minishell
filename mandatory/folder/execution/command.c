@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 23:53:38 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/17 04:03:36 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 04:19:14 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,13 @@ char	**update_arguments(char **arguments, t_token *token, int *len_ptr,
 	return (arguments);
 }
 
+void	init_vars(int *i_ptr, int *len_ptr, char ***arguments_ptr)
+{
+	*i_ptr = 0;
+	*len_ptr = 0;
+	*arguments_ptr = NULL;
+}
+
 char	**build_arguments(int *there_is_redirection_ptr, t_node *node,
 		t_file *input, t_file *output)
 {
@@ -40,15 +47,12 @@ char	**build_arguments(int *there_is_redirection_ptr, t_node *node,
 	int		len;
 	int		pos;
 
-	i = 0;
-	len = 0;
-	arguments = NULL;
+	init_vars(&i, &len, &arguments);
 	pos = node->token->start;
 	while (i < node->token->len)
 	{
-		token = ((t_token **)g_global.tokens.pointers)[pos];
-		pos++;
-		if (token->type == identifier_ || token->type == star_)
+		token = ((t_token **)g_global.tokens.pointers)[pos++];
+		if (token->type == identifier_)
 			arguments = update_arguments(arguments, token, &len, &pos);
 		else if (is_redirection(token->type))
 		{
