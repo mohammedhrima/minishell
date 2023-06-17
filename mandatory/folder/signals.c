@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 03:07:09 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/16 03:07:12 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/17 10:55:30 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,6 @@ void	handle_heredoc_signal(int signum)
 		printf("\n");
 		rl_replace_line("", 0);
 		rl_on_new_line();
-		rl_redisplay();
 		ft_exit(SUCCESS);
 	}
 	if (signum == CTRL_SLASH)
