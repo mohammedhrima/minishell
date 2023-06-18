@@ -30,6 +30,7 @@ void	echo_func(char **arguments)
 	while (arguments && arguments[i])
 	{
 		write(OUT, arguments[i], ft_strlen(arguments[i]));
+		write(OUT, " ", ft_strlen(" "));
 		i++;
 	}
 	if (print_new_line)
