@@ -6,7 +6,7 @@
 #    By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/06/16 04:40:36 by mhrima            #+#    #+#              #
-#    Updated: 2023/06/19 06:50:23 by mhrima           ###   ########.fr        #
+#    Updated: 2023/06/19 20:32:03 by mhrima           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,10 @@ RM					= rm -rf
 
 SRCS 		= main.c
 PARSING 	= parsing/input.c parsing/nodes_1.c parsing/nodes_2.c parsing/tokenize.c  
-EXECUTION 	= evaluate.c heredoc.c
+BUILTIN		= execution/built-in/cd.c execution/built-in/echo.c execution/built-in/env.c \
+			  execution/built-in/exit.c execution/built-in/export.c execution/built-in/pwd.c \
+			  execution/built-in/unset.c execution/built-in/get_built_in.c
+EXECUTION 	= $(BUILTIN) evaluate.c heredoc.c execution/open_file.c
 UTILS 		= utils/convert.c utils/exit.c utils/expand.c utils/global.c utils/list.c \
 			  utils/memory.c utils/split.c utils/string_1.c utils/string_2.c utils/utils.c \
 			  utils/redirection.c utils/signals.c

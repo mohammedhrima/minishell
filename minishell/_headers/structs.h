@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/16 02:14:28 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/19 06:10:48 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/19 20:48:53 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -93,12 +93,13 @@ struct					s_global
 	t_list				addresses;
 	t_list				envirement;
 	t_list				tokens;
+	bool				add_to_tokens;
 	t_list				fds;
 	t_list				pids;
 	// t_list				nodes;
 	// int					status;
 	int					inside_pipe;
-	char				**env;
+	char				**env; // usefull in execve
 	char				**values;
 	t_type				*types;
 };

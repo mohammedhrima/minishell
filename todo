@@ -28,3 +28,7 @@ headers:
 append >>
 use getenv only once
 IFS
+
++ be carefull of eppend, you may forget it
++ give built input and output
++ use lstat

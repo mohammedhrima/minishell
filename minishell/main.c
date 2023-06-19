@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/18 22:12:40 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/19 06:59:45 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/19 20:47:37 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ void build_envirement(char **envp)
 	i = 0;
 	while (envp && envp[i])
 	{
-		array = split_by_two(envp[i], '=');
+		array = split(envp[i], "=");
 		node = new_node(new_token(assign_, NULL, 0));
 		node->left = new_node(new_token(identifier_, NULL, 0));
 		node->left->token->value = array[0];
@@ -65,7 +65,9 @@ int main(int argc, char **argv, char **envp)
 		else
 		{
 			// printf("start tokenizing\n");
+			g_global.add_to_tokens = true;
 			build_tokens(line);
+			g_global.add_to_tokens = false;
 			// printf("finish tokenizing in pos: %d\n", g_global.tokens.pos);
 			g_global.tokens.pos = 0;
 			tokens = (t_token **)g_global.tokens.pointers;

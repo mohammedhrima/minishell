@@ -6,7 +6,7 @@
 /*   By: mhrima <mhrima@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/06/19 04:20:03 by mhrima            #+#    #+#             */
-/*   Updated: 2023/06/19 04:20:59 by mhrima           ###   ########.fr       */
+/*   Updated: 2023/06/19 20:47:59 by mhrima           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,8 @@ t_token	*new_token(t_type type, char *source, int len)
 	}
 	printf("new token with type %s value %s\n", type_to_string(type),
 		new->value);
-	add_pointer(&g_global.tokens, new);
+	if(g_global.add_to_tokens)
+		add_pointer(&g_global.tokens, new);
 	return (new);
 }
 
