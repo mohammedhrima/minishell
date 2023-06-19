@@ -38,7 +38,9 @@
         "unistd.h": "c",
         "list": "cpp",
         "utils.h": "c",
-        "redirection.h": "c"
+        "redirection.h": "c",
+        "signal.h": "c",
+        "tokenize.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

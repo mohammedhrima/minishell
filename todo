@@ -1,6 +1,30 @@
+go back to heredoc after
+
 + create file for heredoc
++ execute hereodc when creatin nodes
 + "ls -la"
 + $USER$PWD
 + a="file          "
 + a+="file          "
 + export a b c
++ SHLVL
+
+protect everything
+
+export:
+    (with multiple arguments)
+    =
+    +=
+
+unset with one or more arguments
+
+headers:
+    consts
+    execution
+    parsing
+    utils
+    structs
+
+append >>
+use getenv only once
+IFS
