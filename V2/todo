@@ -1,9 +1,4 @@
-+ commands
-+ redirection
-+ built ins
-
-
-go back to heredoc after, hereodc must return to redir_input
+go back to heredoc after
 
 + create file for heredoc
 + execute hereodc when creatin nodes
@@ -37,4 +32,3 @@ IFS
 + be carefull of eppend, you may forget it
 + give built input and output
 + use lstat
-+ protect utils functions
