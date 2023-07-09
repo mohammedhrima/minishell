@@ -298,6 +298,6 @@ void	ft_exit(int code)
 		free(Global.addresses.pointers[i]);
 		i++;
 	}
-    system("leaks exe");
+    // system("leaks exe");
 	exit(code);
 }

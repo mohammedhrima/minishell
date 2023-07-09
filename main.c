@@ -153,6 +153,11 @@ void    build_tokens(char *line)
     }
     // check if squote or dquote is syntax error
     new_token(end_, NULL, 0);
+    if(dquote || squote)
+    {
+        printf("minishell: syntax error\n");
+        ft_memset(Global.tokens.pointers, 0, Global.tokens.pos * sizeof(Token*));
+    }
 }
 
 // nodes
@@ -375,7 +380,7 @@ char **get_envirement(void)
         if(left->content)
         {
             env = ft_realloc(env, j, j + 2, sizeof(char*));
-            env[j] = strjoin(left->content, ":", right->content);
+            env[j] = strjoin(left->content, "=", right->content);
             j++;
         }
         i++;
@@ -439,9 +444,79 @@ void check_redirection(File *input, File *output)
     }
 }
 
+char *get_var(char *name)
+{
+    int     i;
+    Node    **nodes;
+
+    nodes = (Node**)Global.envirement.pointers;
+    i = 0;
+#if 0
+    if(ft_strcmp(name, "?") == 0)
+        return (ft_itoa(get_last_exit_code()));
+#endif
+    while(nodes && nodes[i])
+    {
+        if(nodes[i]->left->token->content && ft_strcmp(nodes[i]->left->token->content, name) == 0)
+            return nodes[i]->right->token->content;
+        i++;
+    }
+    return ("");
+}
+
 char *expand(char *content)
 {
-    return content;
+    char    *res;
+    char    *var;
+    char    *to_add;
+    int     i;
+    int     start;
+    int     squote;
+    int     dquote;
+
+    res = NULL;
+    i = 0;
+    squote = 0;
+    dquote = 0;
+    while(content && content[i])
+    {
+        if(content[i] == '\'' && !dquote)
+        {
+            squote = !squote;
+            i++;
+        }
+        else if(content[i] == '"' && !squote)
+        {
+            dquote = !dquote;
+            i++;
+        }
+        else if(content[i] == '$')
+        {
+            if(dquote || !squote)
+            {
+                i++;
+                start = i;
+                while(content[i] && !ft_strchr(" \"\'$", content[i]))
+                    i++;
+                var = ft_calloc(i - start + 1, sizeof(char));
+                ft_memcpy(var, content + start, i - start);
+                to_add = get_var(var);
+                res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + ft_strlen(to_add) + 2, sizeof(char));
+                ft_strncpy(res + ft_strlen(res), to_add, ft_strlen(to_add));
+            }
+            else if(squote)
+            {
+                res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2, sizeof(char));
+                res[ft_strlen(res)] = content[i++];
+            }
+        }
+        else
+        {
+            res = ft_realloc(res, ft_strlen(res), ft_strlen(res) + 2, sizeof(char));
+            res[ft_strlen(res)] = content[i++];
+        }
+    }
+    return res;
 }
 
 Value *evaluate(Node *node, File *input, File *output)
@@ -552,6 +627,7 @@ int	get_last_exit_code(void)
 
 int main(int argc, char **argv, char **envp)
 {
+
     char    *line;
     File    *input;
     File    *output;
@@ -581,13 +657,11 @@ int main(int argc, char **argv, char **envp)
         if(line == NULL)
             break;
         add_history(line);
-        printf("line: '%s'\n", line);
         build_tokens(line);
         Global.tokens.pos = 0;
         tokens = (Token**)Global.tokens.pointers;
-        while (tokens[Global.tokens.pos]->type != end_)
+        while (tokens[Global.tokens.pos] && tokens[Global.tokens.pos]->type != end_)
         {
-            printf("loop\n");
             node = expr_node();
             if (node == NULL)
                 break;
