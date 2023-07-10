@@ -3,6 +3,8 @@
 + built ins
 
 
+
+
 go back to heredoc after, hereodc must return to redir_input
 
 + create file for heredoc

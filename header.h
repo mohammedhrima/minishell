@@ -142,5 +142,11 @@ void	add_number(List *list, int number);
 void	clear_list(List *list);
 bool	is_redirection(Type type);
 char	*strjoin(char *string1, char *string2, char *string3);
-
+char	**split_by_two(char *str, char c);
+char	*ft_itoa(int num);
+int		ft_atoi(char *str);
+char	*ft_strdup(char *string, int len);
+char	*ft_strnstr(char *string, char *to_find);
+bool	ft_isalpha(int c);
+char	*expand(char *content);
 #endif

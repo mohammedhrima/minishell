@@ -2,7 +2,7 @@
 
 bool	is_redirection(Type type)
 {
-	return (type == redir_input || type == redir_output || type == append_);
+	return (type == redir_input || type == redir_output || type == append_ || type == heredoc_);
 }
 
 // memory
@@ -158,11 +158,28 @@ int	ft_strcmp(char *left, char *right)
 	return (left[i] - right[i]);
 }
 
+char *ft_strnstr(char *string, char *to_find)
+{
+	int i = 0;
+	while(string && string[i])
+	{
+		if(ft_strncmp(&string[i], to_find, ft_strlen(to_find)) == 0)
+			return &string[i];
+		i++;
+	}
+	return NULL;
+}
+
 bool	ft_isspace(int c)
 {
 	if(ft_strchr("\t\n\f\r\v ", c))
 		return true;
 	return false;
+}
+
+bool ft_isalpha(int c)
+{
+	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 }
 
 char	*strjoin(char *string1, char *string2, char *string3)
@@ -212,6 +229,30 @@ char **split(char*string, char *spliter)
     res[j] = NULL;
     return res;
 }
+
+char	**split_by_two(char *str, char c)
+{
+	int		i;
+	char	**res;
+
+	i = 0;
+	res = ft_calloc(2, sizeof(char *));
+	while (str && str[i])
+	{
+		if (str[i] == c)
+		{
+			res[0] = ft_calloc(i + 1, sizeof(char));
+			ft_strncpy(res[0], str, i);
+			i++;
+			res[1] = ft_calloc(ft_strlen(str) - i + 1, sizeof(char));
+			ft_strncpy(res[1], str + i, ft_strlen(str) - i);
+			break ;
+		}
+		i++;
+	}
+	return (res);
+}
+
 
 // list
 void	add_pointer(List *list, void *value)
@@ -300,4 +341,68 @@ void	ft_exit(int code)
 	}
     // system("leaks exe");
 	exit(code);
+}
+ // convert
+char	*ft_itoa(int num)
+{
+	char	*res;
+	char	*left;
+
+	if (num < 10)
+	{
+		res = ft_calloc(2, sizeof(char));
+		res[0] = num + '0';
+		return (res);
+	}
+	left = ft_itoa(num / 10);
+	left = ft_realloc(left, ft_strlen(left), ft_strlen(left) + 2, sizeof(char));
+	left[ft_strlen(left)] = num % 10 + '0';
+	return (left);
+}
+
+int	ft_atoi(char *str)
+{
+	int	result;
+	int	sign;
+	int	i;
+
+	result = 0;
+	sign = 1;
+	i = 0;
+	if (str == NULL)
+		return (0);
+	while (ft_isspace(str[i]))
+		i++;
+	if (ft_strchr("+-", str[i]))
+	{
+		if (str[i] == '-')
+			sign = -1;
+		i++;
+	}
+	while (str[i] >= '0' && str[i] <= '9')
+	{
+		result = result * 10 + (str[i] - '0');
+		i++;
+	}
+	return (sign * result);
+}
+
+char	*ft_strdup(char *string, int len)
+{
+	char	*pointer;
+	int		i;
+
+	if (!string)
+		return (NULL);
+	pointer = ft_calloc(len + 1, sizeof(char));
+	if (!pointer)
+		return (NULL);
+	i = 0;
+	while (string && string[i] && i < len)
+	{
+		pointer[i] = string[i];
+		i++;
+	}
+	pointer[i] = '\0';
+	return (pointer);
 }
